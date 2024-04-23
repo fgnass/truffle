@@ -13,7 +13,11 @@ import {
   undo,
   round,
   throwing,
+  currentPlayer,
+  setResult,
+  nextPlayer,
 } from "./state";
+import { Scene } from "./three/scene";
 
 export function Player() {
   console.log(currentPlayerState.value);
@@ -23,16 +27,18 @@ export function Player() {
 
   const selected = selection.value.filter(Boolean).length;
   const throwInProgress = throwing.value > 0 || entering.value;
-  const lastThrow = throwNum.value === 3;
+  const lastThrow = throwNum.value >= 3;
   const shouldSelect =
     roll.value.length === 5 && !selected && throwNum.value < 3;
   const canThrow = !lastThrow && !throwInProgress && selected < 5;
 
   return (
     <div class="player">
+      <Scene numberOfDice={throwing.value} onResult={setResult} />
       <h1>
         Round {round}
-        <span> – Throw {throwNum.value || 1}</span>
+        <span> – Player {currentPlayer.value + 1}</span>
+        <span> – Throw {lastThrow ? 3 : throwNum.value || 1}</span>
         {prevState.value && (
           <button onClick={undo}>
             {prevState.value.redo ? <RedoIcon /> : <UndoIcon />}
@@ -117,6 +123,7 @@ export function Player() {
           </div>
         )}
       </div>
+      {throwNum.value > 3 && <button onClick={nextPlayer}>Next</button>}
       {/* <Pig value={4} /> */}
     </div>
   );

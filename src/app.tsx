@@ -1,16 +1,19 @@
 import "./app.css";
-import { Scene } from "./three/scene";
 import _ from "lodash";
 import { Player } from "./player";
-import { setResult, throwing } from "./state";
+import { players, addPlayer, removePlayer, started, start } from "./state";
 
 export function App() {
+  return <main>{started.value ? <Player /> : <Setup />}</main>;
+}
+
+function Setup() {
   return (
-    <>
-      <Scene numberOfDice={throwing.value} onResult={setResult} />
-      <main>
-        <Player />
-      </main>
-    </>
+    <div>
+      <button onClick={removePlayer}>-</button>
+      <div>{players.value.length}</div>
+      <button onClick={addPlayer}>+</button>
+      <button onClick={start}>Start</button>
+    </div>
   );
 }

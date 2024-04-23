@@ -2,6 +2,7 @@ import { batch, computed, signal } from "@preact/signals";
 import _ from "lodash";
 import { getCategoryScore } from "./advisor/score-calculator";
 
+export const started = signal(false);
 export const manual = signal(false);
 export const throwing = signal(0);
 export const currentPlayer = signal(0);
@@ -19,13 +20,22 @@ class PlayerStateWithHistory extends PlayerState {
   prevState = signal<Snapshot | null>(null);
 }
 
-const players = signal<PlayerStateWithHistory[]>([]);
+export const players = signal<PlayerStateWithHistory[]>([]);
 
 export function addPlayer() {
   players.value = players.value.concat(new PlayerStateWithHistory());
 }
 
+export function removePlayer() {
+  if (players.value.length > 1) players.value = players.value.slice(0, -1);
+}
+
 addPlayer();
+//addPlayer();
+
+export function start() {
+  started.value = true;
+}
 
 export const currentPlayerState = computed(
   () => players.value[currentPlayer.value]
@@ -95,11 +105,17 @@ export function assignScore(cat: number) {
         score,
         ...scores.value.slice(cat + 1),
       ];
-      throwNum.value = 0;
+      throwNum.value = players.value.length > 1 ? 4 : 0;
       roll.value = [];
       selection.value = Array(5).fill(false);
     });
   }
+}
+
+export function nextPlayer() {
+  currentPlayer.value = (currentPlayer.value + 1) % players.value.length;
+  currentPlayerState.value.throwNum.value = 0;
+  console.log("Player", currentPlayer.value, "up");
 }
 
 export function undo() {
