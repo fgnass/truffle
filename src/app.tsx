@@ -6,7 +6,7 @@ import { Scene } from "./three/scene";
 import _ from "lodash";
 import { getCategoryScore } from "./advisor/score-calculator";
 import { categoryNames } from "./i18n/en";
-import { DiceIcon, PenIcon, UndoIcon } from "./icons";
+import { DeleteIcon, DiceIcon, PenIcon, RedoIcon, UndoIcon } from "./icons";
 
 export function App() {
   const [throwNum, setThrowNum] = useState(0);
@@ -20,6 +20,7 @@ export function App() {
   const [prevState, setPrevState] = useState<any>();
 
   const round = scores.filter((s) => s !== null).length + 1;
+  const selected = selection.filter(Boolean).length;
 
   const assignScore = (cat: number) => {
     if (scores[cat] === null && roll.length === 5) {
@@ -32,11 +33,22 @@ export function App() {
     }
   };
   const add = (v: number) => {
+    if (prevState?.redo) setPrevState(null);
     if (roll.length === 4) {
-      setPrevState({ scores, roll, throwNum, selection, manual });
+      setPrevState({
+        scores,
+        roll: roll.slice(0, selected),
+        throwNum,
+        selection,
+        manual,
+      });
       setManual(false);
     }
     setRoll([...roll, v]);
+  };
+
+  const del = () => {
+    setRoll((r) => r.slice(0, -1));
   };
 
   const select = (index: number) =>
@@ -45,19 +57,48 @@ export function App() {
     );
 
   const undo = () => {
+    const redoState = {
+      scores,
+      roll,
+      throwNum,
+      selection,
+      manual,
+      redo: !prevState.redo,
+    };
     setScores(prevState.scores);
     setRoll(prevState.roll);
     setThrowNum(prevState.throwNum);
     setSelection(prevState.selection);
     setManual(prevState.manual);
-    setPrevState(null);
+    setPrevState(redoState);
   };
 
-  const selected = selection.some(Boolean);
+  const rollDice = () => {
+    if (manual) {
+      setPrevState({ scores, roll, throwNum, selection, manual });
+      setRoll((roll) => {
+        const next = roll.filter((_, i) => selection[i]);
+        setSelection(Array(5).fill(true).fill(false, next.length));
+        setManual(true);
+        setThrowNum((n) => n + 1);
+        return next;
+      });
+    } else {
+      setRoll((r) => {
+        const roll = r.filter((_, i) => selection[i]);
+        if (!throwing) setThrowNum((n) => n + 1);
+        setThrowing(5 - roll.length);
+        setPrevState(null);
+        setSelection(Array(5).fill(true).fill(false, roll.length));
+        return roll;
+      });
+    }
+  };
+
   const throwInProgress = throwing > 0 || manual;
   const lastThrow = throwNum === 3;
   const shouldSelect = roll.length === 5 && !selected && throwNum < 3;
-  const canThrow = !lastThrow && !throwInProgress;
+  const canThrow = !lastThrow && !throwInProgress && selected < 5;
 
   return (
     <>
@@ -69,7 +110,15 @@ export function App() {
         }}
       />
       <main>
-        <h1>{throwNum > 0 ? `Throw ${throwNum}` : `Round ${round}`}</h1>
+        <h1>
+          Round {round}
+          <span> – Throw {throwNum || 1}</span>
+          {prevState && (
+            <button onClick={undo}>
+              {prevState.redo ? <RedoIcon /> : <UndoIcon />}
+            </button>
+          )}
+        </h1>
         <div class={`scorecard cols ${manual ? "manual" : ""}`}>
           <div class="rows">
             {scores.slice(0, 6).map((score, i) => (
@@ -95,23 +144,6 @@ export function App() {
               />
             ))}
           </div>
-          <div class="rows clip">
-            {/* <div style="display:flex">
-                <input
-                  type="checkbox"
-                  class="toggle"
-                  checked={manual}
-                  onChange={() => setManual((v) => !v)}
-                />
-                <label>Manual entry</label>
-              </div> */}
-            <Die value={1} onPress={add} />
-            <Die value={2} onPress={add} />
-            <Die value={3} onPress={add} />
-            <Die value={4} onPress={add} />
-            <Die value={5} onPress={add} />
-            <Die value={6} onPress={add} />
-          </div>
         </div>
         <div class="roll">
           {_.range(5).map((i) =>
@@ -128,17 +160,37 @@ export function App() {
               <Die value={0} />
             )
           )}
-          {prevState && (
-            <button onClick={undo}>
-              <UndoIcon />
-            </button>
-          )}
         </div>
+        {manual && (
+          <>
+            <div>Click the dice to enter a roll:</div>
+            <div class="dice-input">
+              {/* <div style="display:flex">
+                <input
+                  type="checkbox"
+                  class="toggle"
+                  checked={manual}
+                  onChange={() => setManual((v) => !v)}
+                />
+                <label>Manual entry</label>
+              </div> */}
+              <Die value={1} onPress={add} />
+              <Die value={2} onPress={add} />
+              <Die value={3} onPress={add} />
+              <Die value={4} onPress={add} />
+              <Die value={5} onPress={add} />
+              <Die value={6} onPress={add} />
+              <button onClick={del} disabled={!roll.length}>
+                <DeleteIcon />
+              </button>
+            </div>
+          </>
+        )}
+        {shouldSelect && <div>Select the dice you want to keep.</div>}
         <div>
-          {lastThrow && roll.length === 5 && (
+          {(selected === 5 || (lastThrow && roll.length === 5)) && (
             <div>Pick a category for your score.</div>
           )}
-          {shouldSelect && <div>Select the dice you want to keep.</div>}
           {canThrow && (
             <div>
               {selected
@@ -162,7 +214,7 @@ export function App() {
                   (!throwing &&
                     (throwNum > 2 ||
                       (roll.length > 0 && roll.length < 5) ||
-                      selection.filter(Boolean).length === 5))
+                      selected === 5))
                 }
               >
                 <DiceIcon />
@@ -170,12 +222,12 @@ export function App() {
               <button
                 onClick={() => {
                   setPrevState({ scores, roll, throwNum, selection, manual });
-                  setRoll((r) => {
-                    const roll = r.filter((_, i) => selection[i]);
-                    setSelection(Array(5).fill(true).fill(false, roll.length));
+                  setRoll((roll) => {
+                    const next = roll.filter((_, i) => selection[i]);
+                    setSelection(Array(5).fill(true).fill(false, next.length));
                     setManual(true);
                     setThrowNum((n) => n + 1);
-                    return roll;
+                    return next;
                   });
                 }}
                 disabled={manual}
