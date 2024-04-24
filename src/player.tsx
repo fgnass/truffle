@@ -1,11 +1,11 @@
 import "./app.css";
 import Die from "./Die";
 import _ from "lodash";
-import { categoryNames } from "./i18n/en";
-import { DeleteIcon, DiceIcon, RedoIcon, UndoIcon } from "./icons";
+import { DeleteIcon, RedoIcon, UndoIcon } from "./icons";
 import {
   currentPlayerState,
   add,
+  i18n,
   assignScore,
   del,
   select,
@@ -16,29 +16,30 @@ import {
   currentPlayer,
   setResult,
   nextPlayer,
+  manual,
 } from "./state";
 import { Scene } from "./three/scene";
 
 export function Player() {
-  console.log(currentPlayerState.value);
-
   const { scores, roll, selection, throwNum, entering, prevState } =
     currentPlayerState.value;
 
+  const t = i18n.value;
+  const showInput = entering.value || (throwNum.value === 0 && manual.value);
   const selected = selection.value.filter(Boolean).length;
-  const throwInProgress = throwing.value > 0 || entering.value;
+  const throwInProgress = throwing.value > 0 || showInput;
   const lastThrow = throwNum.value >= 3;
   const shouldSelect =
-    roll.value.length === 5 && !selected && throwNum.value < 3;
+    roll.value.length === 5 && throwNum.value < 3 && !selected;
   const canThrow = !lastThrow && !throwInProgress && selected < 5;
 
   return (
     <div class="player">
       <Scene numberOfDice={throwing.value} onResult={setResult} />
       <h1>
-        Round {round}
-        <span> – Player {currentPlayer.value + 1}</span>
-        <span> – Throw {lastThrow ? 3 : throwNum.value || 1}</span>
+        {t.roundX(round.value)}
+        <span> – {t.playerX(currentPlayer.value + 1)}</span>
+        <span> – {t.rollX(lastThrow ? 3 : throwNum.value || 1)}</span>
         {prevState.value && (
           <button onClick={undo}>
             {prevState.value.redo ? <RedoIcon /> : <UndoIcon />}
@@ -56,7 +57,7 @@ export function Player() {
             />
           ))}
           <div class="scorebox">
-            <div class="category">Bonus</div>
+            <div class="category">{t.bonus}</div>
             <div class="score"></div>
           </div>
         </div>
@@ -71,26 +72,31 @@ export function Player() {
           ))}
         </div>
       </div>
-      <div class="roll">
-        {_.range(5).map((i) =>
-          i < roll.value.length ? (
-            <Die
-              key={i}
-              value={roll.value[i]}
-              onPress={() => {
-                if (roll.value.length === 5) select(i);
-              }}
-              selected={selection.value[i]}
-            />
-          ) : (
-            <Die value={0} />
-          )
-        )}
+      <div class="flex">
+        <div class="roll">
+          {_.range(5).map((i) =>
+            i < roll.value.length ? (
+              <Die
+                key={i}
+                value={roll.value[i]}
+                onPress={() => {
+                  if (roll.value.length === 5) select(i);
+                }}
+                selected={selection.value[i]}
+              />
+            ) : (
+              <Die value={0} />
+            )
+          )}
+        </div>
+        {shouldSelect && t.selectKeepers}
+        {(selected === 5 || (lastThrow && roll.value.length === 5)) &&
+          t.pickCategory}
       </div>
-      {entering.value && (
-        <>
-          <div>Click the dice to enter a roll:</div>
-          <div class="dice-input">
+      {showInput && (
+        <div class="dice-input">
+          <div>{t.clickDiceToEnterRoll}</div>
+          <div class="roll">
             <Die value={1} onPress={add} />
             <Die value={2} onPress={add} />
             <Die value={3} onPress={add} />
@@ -103,27 +109,26 @@ export function Player() {
               </button>
             )}
           </div>
-        </>
+        </div>
       )}
-      {shouldSelect && <div>Select the dice you want to keep.</div>}
       <div>
-        {(selected === 5 || (lastThrow && roll.value.length === 5)) && (
-          <div>Pick a category for your score.</div>
-        )}
         {canThrow && (
           <div>
-            {selected
-              ? "Keep selected and roll the rest:"
-              : roll.value.length
-              ? "Or roll all dice again:"
-              : "Roll virtual dice or enter manually:"}
-            <button onClick={rollDice}>
-              <DiceIcon />
+            <button class="big" onClick={rollDice}>
+              {selected
+                ? t.rollXDice(5 - selected)
+                : throwNum.value > 0
+                ? t.reRollAll
+                : t.rollDice}
             </button>
           </div>
         )}
       </div>
-      {throwNum.value > 3 && <button onClick={nextPlayer}>Next</button>}
+      {throwNum.value > 3 && (
+        <button class="big" onClick={nextPlayer}>
+          {t.nextPlayer}
+        </button>
+      )}
       {/* <Pig value={4} /> */}
     </div>
   );
@@ -140,7 +145,7 @@ function Scorebox({
 }) {
   return (
     <div class="scorebox" onClick={() => onPress(category)}>
-      <div class="category">{categoryNames[category]}</div>
+      <div class="category">{i18n.value.categoryNames[category]}</div>
       <div class="score">{score}</div>
     </div>
   );

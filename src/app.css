@@ -7,15 +7,30 @@ html {
   font-family: system-ui, sans-serif;
   background: #fff;
   color: #000;
+  --accent: #654fec;
+  accent-color: var(--accent);
 }
 
 button {
   background: transparent;
   border: none;
+  color: inherit;
+}
+
+button.big {
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.5rem;
+  border-radius: 2em;
+  padding: 0.5em 1em;
 }
 
 h1 span {
   font-weight: 200;
+}
+
+path {
+  fill: currentColor;
 }
 
 #app {
@@ -48,11 +63,29 @@ h1 span {
   grid-column: span 2 / span 2;
 }
 
-.roll,
-.dice-input {
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.flex {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.roll {
   display: flex;
   gap: 0.5rem;
   padding: 1rem 0;
+}
+
+.dice-input {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: var(--accent);
+  color: #fff;
 }
 
 .scorebox {
@@ -107,7 +140,7 @@ h1 span {
   border: 1px solid #eee;
 }
 .die[data-selected="true"] {
-  outline: 2px solid #45b8ff;
+  outline: 2px solid var(--accent);
 }
 
 .rows .die {
@@ -144,13 +177,6 @@ h1 span {
   grid-area: g;
 }
 
-/* label {
-  display: block;
-  text-align: left;
-  font-size: 11px;
-  max-width: 52px;
-  text-transform: uppercase;
-}
 input[type="checkbox"] {
   display: block;
   -webkit-appearance: none;
@@ -193,4 +219,3 @@ input[type="checkbox"]:focus {
 .toggle:checked::after {
   transform: translateX(22px);
 }
- */

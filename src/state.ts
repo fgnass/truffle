@@ -2,10 +2,15 @@ import { batch, computed, signal } from "@preact/signals";
 import _ from "lodash";
 import { getCategoryScore } from "./advisor/score-calculator";
 
+import * as translations from "./i18n";
+
 export const started = signal(false);
 export const manual = signal(false);
 export const throwing = signal(0);
 export const currentPlayer = signal(0);
+export const lang = signal<keyof typeof translations>("en");
+
+export const i18n = computed(() => translations[lang.value]);
 
 class PlayerState {
   throwNum = signal(0);
@@ -47,19 +52,23 @@ export const round = computed(
 );
 
 export function add(v: number) {
-  const { roll, entering, selection, prevState } = currentPlayerState.value;
+  const { throwNum, roll, entering, selection, prevState } =
+    currentPlayerState.value;
   if (prevState.value?.redo) prevState.value = null;
   if (roll.value.length === 4) {
     const selected = selection.value.filter(Boolean).length;
     prevState.value = { ...snapshot(), roll: roll.value.slice(0, selected) };
     entering.value = false;
+    if (throwNum.value === 0) throwNum.value++;
   }
   roll.value = [...roll.value, v];
 }
 
 export function del() {
-  const { roll } = currentPlayerState.value;
-  roll.value = roll.value.slice(0, -1);
+  const { roll, selection } = currentPlayerState.value;
+  if (!selection.value[roll.value.length - 1]) {
+    roll.value = roll.value.slice(0, -1);
+  }
 }
 
 export function select(index: number) {

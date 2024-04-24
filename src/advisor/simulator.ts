@@ -7,7 +7,7 @@ import {
 } from "./advisor";
 import { getCategoryScore } from "./score-calculator";
 import { Scorecard } from "./validator";
-import { categoryNames } from "../i18n/en";
+import i18n from "../i18n/en";
 
 /**
  * Initialize the module.
@@ -70,7 +70,7 @@ export function simulateRound(
     isUpperCategory && upperScore < 63 && upperScore + categoryScore >= 63;
 
   console.log(
-    `Got ${categoryScore} in ${categoryNames[category]}`,
+    `Got ${categoryScore} in ${i18n.categoryNames[category]}`,
     triggersBonus ? "Bonus!" : ""
   );
   return {
