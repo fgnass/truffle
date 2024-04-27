@@ -1,14 +1,14 @@
 import { batch, computed, signal } from "@preact/signals";
 import _ from "lodash";
-import { getCategoryScore } from "./advisor/score-calculator";
 
 import * as translations from "./i18n";
+import { getAdvice, getCategoryScore } from "./strategy";
 
 export const started = signal(false);
 export const manual = signal(false);
 export const throwing = signal(0);
 export const currentPlayer = signal(0);
-export const lang = signal<keyof typeof translations>("en");
+export const lang = signal<keyof typeof translations>("de");
 
 export const i18n = computed(() => translations[lang.value]);
 
@@ -19,6 +19,21 @@ class PlayerState {
   roll = signal<number[]>([]);
   selection = signal<boolean[]>(Array(5).fill(false));
   scores = signal<Array<number | null>>(Array(13).fill(null));
+  upperScore = computed(() =>
+    this.scores.value.slice(0, 6).reduce((a, b) => (a ?? 0) + (b ?? 0))
+  );
+
+  advice = computed(() => {
+    if (this.throwNum.value === 0 || this.throwNum.value > 3) return "-";
+    if (this.roll.value.length !== 5) return "-";
+    const a = getAdvice(
+      this.scores.value.map((s) => s ?? -1),
+      this.throwNum.value,
+      this.roll.value
+    );
+    console.log("Advice:", a);
+    return a;
+  });
 }
 
 class PlayerStateWithHistory extends PlayerState {
@@ -36,7 +51,6 @@ export function removePlayer() {
 }
 
 addPlayer();
-//addPlayer();
 
 export function start() {
   started.value = true;
@@ -105,6 +119,7 @@ export function setResult(result: number[]) {
 export function assignScore(cat: number) {
   const { scores, roll, selection, throwNum, prevState } =
     currentPlayerState.value;
+
   if (scores.value[cat] === null && roll.value.length === 5) {
     batch(() => {
       const score = getCategoryScore(cat, roll.value);
@@ -122,9 +137,9 @@ export function assignScore(cat: number) {
 }
 
 export function nextPlayer() {
+  currentPlayerState.value.prevState.value = null;
   currentPlayer.value = (currentPlayer.value + 1) % players.value.length;
   currentPlayerState.value.throwNum.value = 0;
-  console.log("Player", currentPlayer.value, "up");
 }
 
 export function undo() {

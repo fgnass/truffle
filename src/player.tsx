@@ -17,11 +17,12 @@ import {
   setResult,
   nextPlayer,
   manual,
+  players,
 } from "./state";
 import { Scene } from "./three/scene";
 
 export function Player() {
-  const { scores, roll, selection, throwNum, entering, prevState } =
+  const { scores, roll, selection, throwNum, entering, prevState, advice } =
     currentPlayerState.value;
 
   const t = i18n.value;
@@ -37,9 +38,12 @@ export function Player() {
     <div class="player">
       <Scene numberOfDice={throwing.value} onResult={setResult} />
       <h1>
-        {t.roundX(round.value)}
-        <span> – {t.playerX(currentPlayer.value + 1)}</span>
-        <span> – {t.rollX(lastThrow ? 3 : throwNum.value || 1)}</span>
+        {players.value.length > 1
+          ? t.playerX(currentPlayer.value + 1)
+          : t.roundX(round.value)}
+        {throwNum.value > 0 && throwNum.value <= 3 && (
+          <span> – {t.rollX(throwNum.value)}</span>
+        )}
         {prevState.value && (
           <button onClick={undo}>
             {prevState.value.redo ? <RedoIcon /> : <UndoIcon />}
@@ -88,6 +92,7 @@ export function Player() {
               <Die value={0} />
             )
           )}
+          <div>Advice: {advice}</div>
         </div>
         {shouldSelect && t.selectKeepers}
         {(selected === 5 || (lastThrow && roll.value.length === 5)) &&

@@ -24,7 +24,7 @@ const i18n = {
   rollDice: "Roll dice",
   reRollAll: "Re-roll all",
   rollXDice: (x: number) => (x === 1 ? `Roll one die` : `Roll ${x} dice`),
-  nextPlayer: "Next",
+  nextPlayer: "Next player",
   selectKeepers: "Select the dice you want to keep.",
   pickCategory: "Pick a category for your score.",
   clickDiceToEnterRoll: "Click on the dice to enter the roll:",

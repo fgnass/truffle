@@ -27,7 +27,7 @@ const i18n: I18n = {
   reRollAll: "Alle nochmal würfeln",
   rollXDice: (x: number) =>
     x === 1 ? `Einen Würfel würfeln` : `${x} Würfel würfeln`,
-  nextPlayer: "Weiter",
+  nextPlayer: "Nächster Spieler",
   selectKeepers: "Wähle die Würfel, die Du behalten möchtest.",
   pickCategory: "Wähle eine Kategorie für deine Punkte aus.",
   clickDiceToEnterRoll:
