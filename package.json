@@ -12,6 +12,7 @@
     "@preact/signals": "^1.2.3",
     "cannon-es": "^0.20.0",
     "cannon-es-debugger": "^1.0.0",
+    "classname-variants": "^1.5.0",
     "lodash": "^4.17.21",
     "preact": "^10.19.6",
     "three": "0.163.0"
@@ -20,6 +21,9 @@
     "@preact/preset-vite": "^2.8.2",
     "@types/lodash": "^4.17.0",
     "@types/three": "^0.163.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
     "typescript": "^5.2.2",
     "vite": "^5.2.0"
   }

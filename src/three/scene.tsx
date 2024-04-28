@@ -122,7 +122,7 @@ export class Scene extends Component<Props> {
     leftWall.position.x = -window.innerWidth / 60;
     //leftWall.position.z = -11;
     //leftWall.quaternion.setFromEuler(0, Math.PI / 2, 0);
-    this.physicsWorld.addBody(leftWall);
+    //this.physicsWorld.addBody(leftWall);
 
     const rightWall = new CANNON.Body({
       type: CANNON.Body.STATIC,
@@ -131,7 +131,7 @@ export class Scene extends Component<Props> {
     rightWall.position.x = window.innerWidth / 60;
     //rightWall.position.z = -11;
     rightWall.quaternion.setFromEuler(0, -Math.PI / 2, 0);
-    this.physicsWorld.addBody(rightWall);
+    //this.physicsWorld.addBody(rightWall);
 
     const frontWall = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
     frontWall.quaternion.setFromEuler(0, Math.PI, 0);
@@ -269,7 +269,7 @@ export class Scene extends Component<Props> {
   render() {
     return (
       <div
-        class="scene"
+        class="fixed inset-0 data-[throwing='0']:pointer-events-none"
         onClick={() => this.shake()}
         data-throwing={this.props.numberOfDice}
       />
@@ -279,7 +279,6 @@ export class Scene extends Component<Props> {
   componentDidUpdate() {
     if (this.props.numberOfDice > 0) this.throwDice();
     else {
-      console.log("Removing", this.throwing);
       for (let i = 0; i < this.throwing; i++) {
         const { mesh, body } = this.diceArray[i];
         this.scene.remove(mesh);

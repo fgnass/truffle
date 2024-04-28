@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  @apply bg-neutral-200 text-black;
+}
+
+html,
+body {
+  @apply h-full;
+}
+
+#app {
+  @apply h-full flex flex-col;
+}
+
+.die {
+  @apply grid p-2 size-[3em] rounded-[0.3em] bg-neutral-200;
+  grid-template-areas:
+    "a . c"
+    "e g f"
+    "d . b";
+}
+
+.die:empty {
+  @apply border border-neutral-200 bg-white;
+}
+
+.die[data-selected="true"] {
+  @apply outline outline-2 outline-primary-500;
+}
+
+.pip {
+  @apply self-center justify-self-center size-[0.5em] rounded-full bg-neutral-900;
+  box-shadow: inset 0 3px #111, inset 0 -3px #555;
+}
+
+.pip:nth-child(2) {
+  grid-area: b;
+}
+.pip:nth-child(3) {
+  grid-area: c;
+}
+.pip:nth-child(4) {
+  grid-area: d;
+}
+.pip:nth-child(5) {
+  grid-area: e;
+}
+.pip:nth-child(6) {
+  grid-area: f;
+}
+/* This selects the last pip of odd-valued dice (1, 3, 5) and positions the pip in the center */
+.pip:nth-child(odd):last-child {
+  grid-area: g;
+}
