@@ -9,7 +9,7 @@ export function Setup() {
         <div>{players.value.length}</div>
         <Button onClick={addPlayer}>+</Button>
       </div>
-      <label class="flex">
+      <label class="flex gap-2 items-center">
         <div>{i18n.value.virtualDice}</div>
         <input
           type="checkbox"

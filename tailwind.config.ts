@@ -4,10 +4,11 @@ import colors from "tailwindcss/colors";
 const config: Config = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
-    maxWidth: {
-      500: "500px",
-    },
     extend: {
+      fontFamily: {
+        digits: ["kalam"],
+      },
+
       colors: {
         primary: colors.violet,
       },

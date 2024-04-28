@@ -19,8 +19,23 @@ class PlayerState {
   roll = signal<number[]>([]);
   selection = signal<boolean[]>(Array(5).fill(false));
   scores = signal<Array<number | null>>(Array(13).fill(null));
+
   upperScore = computed(() =>
     this.scores.value.slice(0, 6).reduce((a, b) => (a ?? 0) + (b ?? 0))
+  );
+
+  scoreboardFull = computed(() => this.scores.value.every((s) => s !== null));
+
+  upperSectionFull = computed(() =>
+    this.scores.value.slice(0, 6).every((s) => s !== null)
+  );
+
+  bonus = computed(() =>
+    this.upperSectionFull.value
+      ? this.upperScore.value ?? 0 >= 63
+        ? 35
+        : 0
+      : null
   );
 
   advice = computed(() => {

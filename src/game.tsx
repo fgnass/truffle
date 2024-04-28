@@ -22,8 +22,16 @@ import { Scene } from "./three/scene";
 import { Button } from "./styled";
 
 export function Game() {
-  const { scores, roll, selection, throwNum, entering, prevState, advice } =
-    currentPlayerState.value;
+  const {
+    scores,
+    bonus,
+    roll,
+    selection,
+    throwNum,
+    entering,
+    prevState,
+    advice,
+  } = currentPlayerState.value;
 
   const t = i18n.value;
   const showInput = entering.value || (throwNum.value === 0 && manual.value);
@@ -32,13 +40,14 @@ export function Game() {
   const lastThrow = throwNum.value >= 3;
   const shouldSelect =
     roll.value.length === 5 && throwNum.value < 3 && !selected;
-  const canThrow = !lastThrow && !throwInProgress && selected < 5;
+  const canThrow =
+    round.value <= 13 && !lastThrow && !throwInProgress && selected < 5;
 
   return (
-    <div class="flex-1 flex flex-col gap-6 text-sm max-w-500 mx-auto">
+    <div class="flex-1 flex flex-col gap-6 text-sm w-[500px] max-w-full mx-auto">
       <Scene numberOfDice={throwing.value} onResult={setResult} />
       <div class="bg-white shadow p-6 flex flex-col gap-6">
-        <h1 class="font-bold text-xl flex items-center gap-1">
+        <h1 class="font-bold text-xl flex items-center gap-1 leading-none min-h-6">
           {players.value.length > 1
             ? t.playerX(currentPlayer.value + 1)
             : t.roundX(round.value)}
@@ -61,7 +70,7 @@ export function Game() {
                 onClick={() => assignScore(i)}
               />
             ))}
-            <Scorebox category={t.bonus} score={0} />
+            <Scorebox category={t.bonus} score={bonus.value} />
           </div>
           <div class="grid row-span-7 grid-rows-subgrid">
             {scores.value.slice(6).map((score, i) => (
@@ -74,7 +83,7 @@ export function Game() {
             ))}
           </div>
         </div>
-        <div class="flex flex-col">
+        <div class="flex flex-col gap-2">
           <div class="flex gap-2">
             {_.range(5).map((i) =>
               i < roll.value.length ? (
@@ -84,21 +93,23 @@ export function Game() {
                   onPress={() => {
                     if (roll.value.length === 5) select(i);
                   }}
-                  selected={selection.value[i]}
+                  selected={selection.value[i] || throwNum.value >= 3}
                 />
               ) : (
                 <Die value={0} />
               )
             )}
-            <div>Advice: {advice}</div>
+            <div class="text-xs">{advice}</div>
           </div>
-          {shouldSelect && t.selectKeepers}
-          {(selected === 5 || (lastThrow && roll.value.length === 5)) &&
-            t.pickCategory}
+          <div class="text-xs min-h-6">
+            {shouldSelect && t.selectKeepers}
+            {(selected === 5 || (lastThrow && roll.value.length === 5)) &&
+              t.pickCategory}
+          </div>
         </div>
       </div>
       {showInput && (
-        <div class="rounded p-4 bg-primary-500 text-white">
+        <div class="rounded-md p-4 bg-primary-500 text-white space-y-2">
           <div>{t.clickDiceToEnterRoll}</div>
           <div class="flex gap-2">
             <Die value={1} onPress={add} />
@@ -145,11 +156,15 @@ function Scorebox({
 }) {
   return (
     <div
-      class="border-b border-neutral-400 p-1 grid grid-cols-[5fr_2fr] items-end"
+      class="border-b border-neutral-400 p-1 grid grid-cols-[5fr_2fr] items-end min-h-10"
       onClick={onClick}
     >
-      <div class="min-w-[min(4rem,100%)] justify-self-start">{category}</div>
-      <div class="justify-self-start">{score}</div>
+      <div class="w-[min(4rem,100%)] justify-self-start text-xs leading-tight">
+        {category}
+      </div>
+      <div class="justify-self-start font-digits text-right text-blue-700 leading-none text-lg">
+        {score}
+      </div>
     </div>
   );
 }

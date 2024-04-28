@@ -1,22 +1,8 @@
 // Based on https://holderied.de/kniffel/
 
-const POW2 = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
+import { i18n } from "./state";
 
-const FIELD_NAMES = [
-  "Einser",
-  "Zweier",
-  "Dreier",
-  "Vierer",
-  "Fuenfer",
-  "Sechser",
-  "3er-Pasch",
-  "4er-Pasch",
-  "FullHouse",
-  "Kleine Strasse",
-  "Grosse Strasse",
-  "Kniffel",
-  "Chance",
-];
+const POW2 = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
 
 const ROLLS = [
   0, 1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16, 22, 23, 24, 25, 26, 33, 34, 35,
@@ -1828,7 +1814,7 @@ export function getAdvice(
           w3[iaw] -
           restgewinn[indexScore(spielstand)] -
           bewertungen[iaw][eingabe - 1]; */
-    return FIELD_NAMES[e3[rollIndex]];
+    return i18n.value.categoryNames[e3[rollIndex]];
   }
 
   computeExpectedValuesAfterChoice2();
