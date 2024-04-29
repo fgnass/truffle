@@ -46,7 +46,7 @@ export function Game() {
   return (
     <div class="flex-1 flex flex-col gap-6 text-sm w-[500px] max-w-full mx-auto">
       <Scene numberOfDice={throwing.value} onResult={setResult} />
-      <div class="bg-white shadow p-6 flex flex-col gap-6">
+      <div class="bg-white shadow-paper p-6 flex flex-col gap-6">
         <h1 class="font-bold text-xl flex items-center gap-1 leading-none min-h-6">
           {players.value.length > 1
             ? t.playerX(currentPlayer.value + 1)
@@ -162,8 +162,8 @@ function Scorebox({
       <div class="w-[min(4rem,100%)] justify-self-start text-xs leading-tight">
         {category}
       </div>
-      <div class="justify-self-start font-digits text-right text-blue-700 leading-none text-lg">
-        {score}
+      <div class="font-digits justify-self-end text-blue-700 leading-none text-lg">
+        {score === 0 ? "–" : score}
       </div>
     </div>
   );

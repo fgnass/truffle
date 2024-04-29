@@ -1,3 +1,4 @@
+import { Toggle } from "./Toggle";
 import { players, addPlayer, removePlayer, start, manual, i18n } from "./state";
 import { Button } from "./styled";
 
@@ -11,12 +12,7 @@ export function Setup() {
       </div>
       <label class="flex gap-2 items-center">
         <div>{i18n.value.virtualDice}</div>
-        <input
-          type="checkbox"
-          class="toggle"
-          checked={manual}
-          onChange={() => (manual.value = !manual.value)}
-        />
+        <Toggle checked={manual.value} onChange={(v) => (manual.value = v)} />
         <div>{i18n.value.realDice}</div>
       </label>
 
