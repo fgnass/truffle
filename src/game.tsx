@@ -12,7 +12,6 @@ import {
   undo,
   round,
   throwing,
-  currentPlayer,
   setResult,
   nextPlayer,
   manual,
@@ -31,6 +30,7 @@ export function Game() {
     entering,
     prevState,
     advice,
+    name,
   } = currentPlayerState.value;
 
   const t = i18n.value;
@@ -43,14 +43,13 @@ export function Game() {
   const canThrow =
     round.value <= 13 && !lastThrow && !throwInProgress && selected < 5;
 
+  console.log("Player name", name.value);
   return (
     <div class="flex-1 flex flex-col gap-6 text-sm w-[500px] max-w-full mx-auto">
       <Scene numberOfDice={throwing.value} onResult={setResult} />
       <div class="bg-white shadow-paper p-6 flex flex-col gap-6">
         <h1 class="font-bold text-xl flex items-center gap-1 leading-none min-h-6">
-          {players.value.length > 1
-            ? t.playerX(currentPlayer.value + 1)
-            : t.roundX(round.value)}
+          {players.value.length > 1 ? name.value : t.roundX(round.value)}
           {throwNum.value > 0 && throwNum.value <= 3 && (
             <span class="font-extralight"> – {t.rollX(throwNum.value)}</span>
           )}

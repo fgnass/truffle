@@ -37,3 +37,35 @@ export function DeleteIcon() {
     </svg>
   );
 }
+
+export function ChevronUpIcon() {
+  return (
+    <svg height="24" width="24" viewBox="0 -960 960 960">
+      <path d="m296-345-56-56 240-240 240 240-56 56-184-184-184 184Z" />
+    </svg>
+  );
+}
+
+export function ChevronDownIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 -960 960 960">
+      <path d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z" />
+    </svg>
+  );
+}
+
+export function ChevronUpDownIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 -960 960 960">
+      <path d="M480-120 300-300l58-58 122 122 122-122 58 58-180 180ZM358-598l-58-58 180-180 180 180-58 58-122-122-122 122Z" />
+    </svg>
+  );
+}
+
+export function CheckIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 -960 960 960">
+      <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z" />
+    </svg>
+  );
+}

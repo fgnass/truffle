@@ -1,4 +1,4 @@
-import { batch, computed, signal } from "@preact/signals";
+import { Signal, batch, computed, signal } from "@preact/signals";
 import _ from "lodash";
 
 import * as translations from "./i18n";
@@ -12,7 +12,12 @@ export const lang = signal<keyof typeof translations>("de");
 
 export const i18n = computed(() => translations[lang.value]);
 
+export const allPlayersNamed = computed(() =>
+  players.value.every((p) => !!p.name.value)
+);
+
 class PlayerState {
+  name = signal<string | null>(null);
   throwNum = signal(0);
   entering = signal(false);
   throwing = signal(0);
@@ -49,16 +54,27 @@ class PlayerState {
     console.log("Advice:", a);
     return a;
   });
+
+  number: Signal<number>;
+
+  constructor(number: number) {
+    this.number = signal(number);
+  }
 }
 
 class PlayerStateWithHistory extends PlayerState {
   prevState = signal<Snapshot | null>(null);
+  constructor(number: number) {
+    super(number);
+  }
 }
 
 export const players = signal<PlayerStateWithHistory[]>([]);
 
 export function addPlayer() {
-  players.value = players.value.concat(new PlayerStateWithHistory());
+  players.value = players.value.concat(
+    new PlayerStateWithHistory(players.value.length + 1)
+  );
 }
 
 export function removePlayer() {
