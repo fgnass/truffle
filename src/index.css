@@ -11,7 +11,7 @@
 }
 
 html {
-  @apply bg-neutral-200 text-black;
+  @apply bg-neutral-200 text-black select-none;
 }
 
 html,
@@ -19,8 +19,12 @@ body {
   @apply h-full;
 }
 
-path {
+/* path:not([stroke]) {
   fill: currentColor;
+} */
+
+button svg {
+  height: 1.429em;
 }
 
 #app {

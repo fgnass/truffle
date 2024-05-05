@@ -1,12 +1,15 @@
-import { Signal, batch, computed, signal } from "@preact/signals";
+import { Signal, batch, computed, effect, signal } from "@preact/signals";
 import _ from "lodash";
 
 import * as translations from "./i18n";
 import { getAdvice, getCategoryScore } from "./strategy";
 
+import alasql from "alasql";
+
 export const started = signal(false);
 export const manual = signal(false);
 export const throwing = signal(0);
+export const digging = signal(0);
 export const currentPlayer = signal(0);
 export const lang = signal<keyof typeof translations>("de");
 
@@ -16,14 +19,21 @@ export const allPlayersNamed = computed(() =>
   players.value.every((p) => !!p.name.value)
 );
 
+alasql("create localStorage database if not exists truffle");
+alasql("attach localStorage database truffle");
+alasql("use truffle");
+alasql("create table if not exists players (name string)");
+
 class PlayerState {
   name = signal<string | null>(null);
+
   throwNum = signal(0);
-  entering = signal(false);
   throwing = signal(0);
   roll = signal<number[]>([]);
   selection = signal<boolean[]>(Array(5).fill(false));
   scores = signal<Array<number | null>>(Array(13).fill(null));
+
+  adviceNeeded = signal(false);
 
   upperScore = computed(() =>
     this.scores.value.slice(0, 6).reduce((a, b) => (a ?? 0) + (b ?? 0))
@@ -37,21 +47,21 @@ class PlayerState {
 
   bonus = computed(() =>
     this.upperSectionFull.value
-      ? this.upperScore.value ?? 0 >= 63
+      ? (this.upperScore.value ?? 0) >= 63
         ? 35
         : 0
       : null
   );
 
   advice = computed(() => {
-    if (this.throwNum.value === 0 || this.throwNum.value > 3) return "-";
-    if (this.roll.value.length !== 5) return "-";
-    const a = getAdvice(
-      this.scores.value.map((s) => s ?? -1),
-      this.throwNum.value,
-      this.roll.value
-    );
-    console.log("Advice:", a);
+    if (!this.adviceNeeded.value) return null;
+    if (this.throwNum.value === 0 || this.throwNum.value > 3) return null;
+    if (this.roll.value.length !== 5) return null;
+    const scores = this.scores.value.map((s) => s ?? -1);
+    const a = getAdvice(scores, this.throwNum.value, this.roll.value);
+    if (a instanceof Array && a.length === 5 && this.throwNum.value < 3) {
+      return getAdvice(scores, 3, this.roll.value);
+    }
     return a;
   });
 
@@ -59,6 +69,41 @@ class PlayerState {
 
   constructor(number: number) {
     this.number = signal(number);
+    effect(() => {
+      const name = this.name.value;
+      if (name) {
+        alasql(
+          "if not exists (select * from players where name = ?) insert into players values (?)",
+          [name, name]
+        );
+        //console.log(await alasql.promise("select * from players"));
+      }
+    });
+    effect(() => {
+      const a = this.advice.value;
+      const d = a instanceof Array ? a[0] : 0;
+      digging.value = d;
+      if (d) {
+        setTimeout(() => {
+          digging.value = 0;
+        }, 5500);
+      }
+    });
+    effect(() => {
+      if (digging.value) return;
+      if (this.advice.value instanceof Array) {
+        const a = [...this.advice.value];
+        this.selection.value = this.roll.value.map((v) => {
+          const i = a.indexOf(v);
+          const selected = i >= 0;
+          if (selected) a.splice(i, 1);
+          return selected;
+        });
+      } else if (typeof this.advice.value === "number") {
+        console.log("Assign to cat", this.advice.value);
+        assignScore(this.advice.value);
+      }
+    });
   }
 }
 
@@ -97,14 +142,11 @@ export const round = computed(
 );
 
 export function add(v: number) {
-  const { throwNum, roll, entering, selection, prevState } =
-    currentPlayerState.value;
+  const { roll, selection, prevState } = currentPlayerState.value;
   if (prevState.value?.redo) prevState.value = null;
   if (roll.value.length === 4) {
     const selected = selection.value.filter(Boolean).length;
     prevState.value = { ...snapshot(), roll: roll.value.slice(0, selected) };
-    entering.value = false;
-    if (throwNum.value === 0) throwNum.value++;
   }
   roll.value = [...roll.value, v];
 }
@@ -124,20 +166,15 @@ export function select(index: number) {
 }
 
 export function rollDice() {
-  const { roll, selection, throwNum, entering, prevState } =
+  const { roll, selection, throwNum, adviceNeeded, prevState } =
     currentPlayerState.value;
-  if (manual.value) {
-    prevState.value = snapshot();
-    roll.value = roll.value.filter((_, i) => selection.value[i]);
-    selection.value = Array(5).fill(true).fill(false, roll.value.length);
-    entering.value = true;
-    throwNum.value++;
-  } else {
-    roll.value = roll.value.filter((_, i) => selection.value[i]);
-    if (!throwing.value) throwNum.value++;
+  roll.value = roll.value.filter((_, i) => selection.value[i]);
+  prevState.value = null;
+  selection.value = Array(5).fill(true).fill(false, roll.value.length);
+  adviceNeeded.value = false;
+  if (!throwing.value) throwNum.value++;
+  if (!manual.value) {
     throwing.value = 5 - roll.value.length;
-    prevState.value = null;
-    selection.value = Array(5).fill(true).fill(false, roll.value.length);
   }
 }
 
@@ -148,7 +185,7 @@ export function setResult(result: number[]) {
 }
 
 export function assignScore(cat: number) {
-  const { scores, roll, selection, throwNum, prevState } =
+  const { scores, roll, selection, throwNum, prevState, adviceNeeded } =
     currentPlayerState.value;
 
   if (scores.value[cat] === null && roll.value.length === 5) {
@@ -163,6 +200,7 @@ export function assignScore(cat: number) {
       throwNum.value = players.value.length > 1 ? 4 : 0;
       roll.value = [];
       selection.value = Array(5).fill(false);
+      adviceNeeded.value = false;
     });
   }
 }
@@ -174,7 +212,7 @@ export function nextPlayer() {
 }
 
 export function undo() {
-  const { scores, roll, throwNum, selection, entering, prevState } =
+  const { scores, roll, throwNum, selection, prevState } =
     currentPlayerState.value;
   const prev = prevState.value;
   if (prev) {
@@ -184,21 +222,18 @@ export function undo() {
       roll.value = prev.roll;
       throwNum.value = prev.throwNum;
       selection.value = prev.selection;
-      entering.value = prev.entering;
       prevState.value = redoState;
     });
   }
 }
 
 function snapshot() {
-  const { scores, roll, selection, throwNum, entering } =
-    currentPlayerState.value;
+  const { scores, roll, selection, throwNum } = currentPlayerState.value;
   return {
     scores: scores.value,
     roll: roll.value,
     throwNum: throwNum.value,
     selection: selection.value,
-    entering: entering.value,
     redo: false,
   };
 }

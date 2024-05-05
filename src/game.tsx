@@ -1,6 +1,6 @@
 import Die from "./Die";
 import _ from "lodash";
-import { DeleteIcon, RedoIcon, UndoIcon } from "./icons";
+import { DeleteIcon, PigIcon, RedoIcon, UndoIcon } from "./icons";
 import {
   currentPlayerState,
   add,
@@ -16,9 +16,11 @@ import {
   nextPlayer,
   manual,
   players,
+  digging,
 } from "./state";
 import { Scene } from "./three/scene";
 import { Button } from "./styled";
+import { Pig } from "./pig";
 
 export function Game() {
   const {
@@ -27,27 +29,38 @@ export function Game() {
     roll,
     selection,
     throwNum,
-    entering,
     prevState,
     advice,
+    adviceNeeded,
     name,
   } = currentPlayerState.value;
 
   const t = i18n.value;
-  const showInput = entering.value || (throwNum.value === 0 && manual.value);
+  const rollComplete = roll.value.length === 5;
+  const showInput = manual.value && !rollComplete;
   const selected = selection.value.filter(Boolean).length;
-  const throwInProgress = throwing.value > 0 || showInput;
+  const throwInProgress = throwing.value > 0;
   const lastThrow = throwNum.value >= 3;
-  const shouldSelect =
-    roll.value.length === 5 && throwNum.value < 3 && !selected;
-  const canThrow =
-    round.value <= 13 && !lastThrow && !throwInProgress && selected < 5;
 
-  console.log("Player name", name.value);
+  const shouldAssign =
+    selected === 5 ||
+    (lastThrow && rollComplete) ||
+    (manual.value && !adviceNeeded.value && rollComplete);
+
+  const shouldSelect =
+    !manual.value && rollComplete && throwNum.value < 3 && !selected;
+
+  const canThrow =
+    (!manual.value || throwNum.value > 0) &&
+    round.value <= 13 &&
+    !digging.value &&
+    !lastThrow &&
+    !throwInProgress &&
+    selected < 5;
+
   return (
     <div class="flex-1 flex flex-col gap-6 text-sm w-[500px] max-w-full mx-auto">
-      <Scene numberOfDice={throwing.value} onResult={setResult} />
-      <div class="bg-white shadow-paper p-6 flex flex-col gap-6">
+      <div class="bg-white shadow-paper p-6 flex flex-col gap-6 relative overflow-hidden">
         <h1 class="font-bold text-xl flex items-center gap-1 leading-none min-h-6">
           {players.value.length > 1 ? name.value : t.roundX(round.value)}
           {throwNum.value > 0 && throwNum.value <= 3 && (
@@ -98,14 +111,24 @@ export function Game() {
                 <Die value={0} />
               )
             )}
-            <div class="text-xs">{advice}</div>
+            <div class="flex-1 flex justify-center items-center">
+              {rollComplete && !adviceNeeded.value && (
+                <Button secondary onClick={() => (adviceNeeded.value = true)}>
+                  <PigIcon />
+                </Button>
+              )}
+            </div>
           </div>
           <div class="text-xs min-h-6">
             {shouldSelect && t.selectKeepers}
-            {(selected === 5 || (lastThrow && roll.value.length === 5)) &&
-              t.pickCategory}
+            {shouldAssign && t.pickCategory}
           </div>
         </div>
+        {digging.value > 0 && (
+          <div class="text-primary-800 absolute bottom-0 right-0">
+            <Pig value={digging.value} />
+          </div>
+        )}
       </div>
       {showInput && (
         <div class="rounded-md p-4 bg-primary-500 text-white space-y-2">
@@ -125,7 +148,7 @@ export function Game() {
           </div>
         </div>
       )}
-      <div class="self-center">
+      <div class="self-center flex gap-2">
         {canThrow && (
           <Button onClick={rollDice}>
             {selected
@@ -135,11 +158,18 @@ export function Game() {
               : t.rollDice}
           </Button>
         )}
+        {adviceNeeded.value && !throwNum.value && (
+          <div class="flex gap-2">
+            <Button onClick={() => (throwNum.value = 1)}>1. Wurf</Button>
+            <Button onClick={() => (throwNum.value = 2)}>2. Wurf</Button>
+            <Button onClick={() => (throwNum.value = 3)}>3. Wurf</Button>
+          </div>
+        )}
         {throwNum.value > 3 && (
           <Button onClick={nextPlayer}>{t.nextPlayer}</Button>
         )}
       </div>
-      {/* <Pig value={4} /> */}
+      <Scene numberOfDice={throwing.value} onResult={setResult} />
     </div>
   );
 }

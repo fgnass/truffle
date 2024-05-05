@@ -1,7 +1,5 @@
 // Based on https://holderied.de/kniffel/
 
-import { i18n } from "./state";
-
 const POW2 = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
 
 const ROLLS = [
@@ -1783,6 +1781,14 @@ function rollToInt(roll: number[]) {
   return roll.reduce((p, c, i, a) => p + c * Math.pow(10, a.length - 1 - i), 0);
 }
 
+function intToRoll(int: number) {
+  const r = [];
+  for (let i = 0; i < 5; i++) {
+    r[4 - i] = Math.floor((int % Math.pow(10, i + 1)) / Math.pow(10, i));
+  }
+  return r.filter(Boolean);
+}
+
 export function getCategoryScore(cat: number, roll: number[]) {
   const r = rollToInt(roll);
   const iaw = index5(r);
@@ -1814,7 +1820,7 @@ export function getAdvice(
           w3[iaw] -
           restgewinn[indexScore(spielstand)] -
           bewertungen[iaw][eingabe - 1]; */
-    return i18n.value.categoryNames[e3[rollIndex]];
+    return e3[rollIndex];
   }
 
   computeExpectedValuesAfterChoice2();
@@ -1822,7 +1828,7 @@ export function getAdvice(
 
   if (rollNumber === 2) {
     //handicap += a2[e2[iaw]] - a2[ia];
-    return ROLLS[e2[rollIndex]];
+    return intToRoll(ROLLS[e2[rollIndex]]);
   }
 
   computeExpectedValuesAfterChoice1();
@@ -1830,6 +1836,6 @@ export function getAdvice(
 
   if (rollNumber === 1) {
     //handicap += a1[e1[iaw]] - a1[ia];
-    return ROLLS[e1[rollIndex]];
+    return intToRoll(ROLLS[e1[rollIndex]]);
   }
 }
