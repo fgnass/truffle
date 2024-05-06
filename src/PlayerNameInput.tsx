@@ -4,7 +4,7 @@ import { CheckIcon, ChevronUpDownIcon } from "./icons";
 import { Signal, computed, useSignal } from "@preact/signals";
 import { players } from "./state";
 
-const people = ["Elmar", "Felix"];
+const people = ["Elmar", "Felix", "Miri", "Paula"];
 
 const notPlaying = computed(() =>
   people.filter(

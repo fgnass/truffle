@@ -19,10 +19,25 @@ export const allPlayersNamed = computed(() =>
   players.value.every((p) => !!p.name.value)
 );
 
+export const gameFinished = computed(() =>
+  players.value.every((p) => !!p.scoreboardFull.value)
+);
+
+export const finalRanking = computed(() => {
+  if (!gameFinished.value) return [];
+  const ranked = [...players.value];
+  ranked.sort((a, b) => b.totalScore.value - a.totalScore.value);
+  return ranked;
+});
+
 alasql("create localStorage database if not exists truffle");
 alasql("attach localStorage database truffle");
 alasql("use truffle");
 alasql("create table if not exists players (name string)");
+
+function sum(a: number | null, b: number | null) {
+  return (a ?? 0) + (b ?? 0);
+}
 
 class PlayerState {
   name = signal<string | null>(null);
@@ -36,9 +51,9 @@ class PlayerState {
 
   adviceNeeded = signal(false);
 
-  upperScore = computed(() =>
-    this.scores.value.slice(0, 6).reduce((a, b) => (a ?? 0) + (b ?? 0))
-  );
+  upperScore = computed(() => this.scores.value.slice(0, 6).reduce(sum));
+
+  lowerScore = computed(() => this.scores.value.slice(6).reduce(sum));
 
   scoreboardFull = computed(() => this.scores.value.every((s) => s !== null));
 
@@ -52,6 +67,13 @@ class PlayerState {
         ? 35
         : 0
       : null
+  );
+
+  totalScore = computed(
+    () =>
+      (this.lowerScore.value ?? 0) +
+      (this.bonus.value ?? 0) +
+      (this.lowerScore.value ?? 0)
   );
 
   advice = computed<null | string | number | number[]>(() => {
@@ -141,6 +163,14 @@ addPlayer();
 
 export function start() {
   started.value = true;
+}
+
+export function newGame() {
+  batch(() => {
+    started.value = false;
+    players.value = [];
+    addPlayer();
+  });
 }
 
 export const currentPlayerState = computed(
