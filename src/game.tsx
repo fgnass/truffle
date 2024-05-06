@@ -30,7 +30,7 @@ export function Game() {
     selection,
     throwNum,
     prevState,
-    advice,
+    perfect,
     adviceNeeded,
     name,
   } = currentPlayerState.value;
@@ -170,6 +170,13 @@ export function Game() {
         )}
       </div>
       <Scene numberOfDice={throwing.value} onResult={setResult} />
+      {perfect.value && (
+        <div class="fixed bottom-[35%] left-1/2 -translate-x-1/2">
+          <div key={throwNum.value} class="animate-fly font-extrabold italic">
+            Perfect!
+          </div>
+        </div>
+      )}
     </div>
   );
 }

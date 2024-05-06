@@ -8,7 +8,6 @@ const config: Config = {
       fontFamily: {
         digits: ["kalam"],
       },
-
       colors: {
         primary: colors.violet,
       },
@@ -20,6 +19,18 @@ const config: Config = {
 
         inset: `inset 0 0.1em 1px #bbb, inset 0 -0.1em 1px #fff,
                 inset 0.1em 0 1px #d7d7d7, inset -0.1em 0 1px #d7d7d7;`,
+      },
+      keyframes: {
+        fly: {
+          to: {
+            translate: "0 -100vh",
+            scale: "2.4",
+            opacity: "0",
+          },
+        },
+      },
+      animation: {
+        fly: "fly 1300ms ease-in-out forwards",
       },
     },
   },

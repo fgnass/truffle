@@ -2,7 +2,7 @@ import { Signal, batch, computed, effect, signal } from "@preact/signals";
 import _ from "lodash";
 
 import * as translations from "./i18n";
-import { getAdvice, getCategoryScore } from "./strategy";
+import { getAdvice, getCategoryScore, rollsMatch } from "./strategy";
 
 import alasql from "alasql";
 
@@ -29,6 +29,7 @@ class PlayerState {
 
   throwNum = signal(0);
   throwing = signal(0);
+  perfect = signal(false);
   roll = signal<number[]>([]);
   selection = signal<boolean[]>(Array(5).fill(false));
   scores = signal<Array<number | null>>(Array(13).fill(null));
@@ -53,12 +54,16 @@ class PlayerState {
       : null
   );
 
-  advice = computed(() => {
-    if (!this.adviceNeeded.value) return null;
-    if (this.throwNum.value === 0 || this.throwNum.value > 3) return null;
-    if (this.roll.value.length !== 5) return null;
+  advice = computed<null | string | number | number[]>(() => {
+    console.log(this.throwNum.value, this.roll.value.length);
+    const active = this.throwNum.value > 0 && this.throwNum.value <= 3;
+    if (this.roll.value.length !== 5 || !active) {
+      console.log("Exit");
+      return null;
+    }
     const scores = this.scores.value.map((s) => s ?? -1);
     const a = getAdvice(scores, this.throwNum.value, this.roll.value);
+    console.log("Advice", a);
     if (a instanceof Array && a.length === 5 && this.throwNum.value < 3) {
       return getAdvice(scores, 3, this.roll.value);
     }
@@ -79,8 +84,11 @@ class PlayerState {
         //console.log(await alasql.promise("select * from players"));
       }
     });
+
+    // Set digging for 5 seconds
     effect(() => {
       const a = this.advice.value;
+      if (!this.adviceNeeded.value) return;
       const d = a instanceof Array ? a[0] : 0;
       digging.value = d;
       if (d) {
@@ -89,8 +97,11 @@ class PlayerState {
         }, 5500);
       }
     });
+
+    // Select or assign after digging
     effect(() => {
       if (digging.value) return;
+      if (!this.adviceNeeded.value) return;
       if (this.advice.value instanceof Array) {
         const a = [...this.advice.value];
         this.selection.value = this.roll.value.map((v) => {
@@ -166,9 +177,21 @@ export function select(index: number) {
 }
 
 export function rollDice() {
-  const { roll, selection, throwNum, adviceNeeded, prevState } =
-    currentPlayerState.value;
-  roll.value = roll.value.filter((_, i) => selection.value[i]);
+  const {
+    roll,
+    selection,
+    throwNum,
+    perfect,
+    advice,
+    adviceNeeded,
+    prevState,
+  } = currentPlayerState.value;
+  const keep = roll.value.filter((_, i) => selection.value[i]);
+  perfect.value =
+    !adviceNeeded.value &&
+    advice.value instanceof Array &&
+    rollsMatch(advice.value, keep);
+  roll.value = keep;
   prevState.value = null;
   selection.value = Array(5).fill(true).fill(false, roll.value.length);
   adviceNeeded.value = false;
@@ -185,11 +208,20 @@ export function setResult(result: number[]) {
 }
 
 export function assignScore(cat: number) {
-  const { scores, roll, selection, throwNum, prevState, adviceNeeded } =
-    currentPlayerState.value;
+  const {
+    scores,
+    roll,
+    selection,
+    throwNum,
+    prevState,
+    perfect,
+    advice,
+    adviceNeeded,
+  } = currentPlayerState.value;
 
   if (scores.value[cat] === null && roll.value.length === 5) {
     batch(() => {
+      perfect.value = !adviceNeeded.value && advice.value === cat;
       const score = getCategoryScore(cat, roll.value);
       prevState.value = snapshot();
       scores.value = [
@@ -206,18 +238,20 @@ export function assignScore(cat: number) {
 }
 
 export function nextPlayer() {
+  currentPlayerState.value.perfect.value = false;
   currentPlayerState.value.prevState.value = null;
   currentPlayer.value = (currentPlayer.value + 1) % players.value.length;
   currentPlayerState.value.throwNum.value = 0;
 }
 
 export function undo() {
-  const { scores, roll, throwNum, selection, prevState } =
+  const { scores, roll, throwNum, selection, prevState, perfect } =
     currentPlayerState.value;
   const prev = prevState.value;
   if (prev) {
     const redoState = { ...snapshot(), redo: !prev.redo };
     batch(() => {
+      perfect.value = false;
       scores.value = prev.scores;
       roll.value = prev.roll;
       throwNum.value = prev.throwNum;

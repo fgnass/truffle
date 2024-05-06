@@ -1768,7 +1768,6 @@ function sortDigits(num: number) {
 
 function index5(roll: number) {
   const temp = sortDigits(roll);
-  console.log({ roll, temp });
   for (let i = 0; i < 252; i++) {
     if (ROLLS[i + 210] === temp) {
       return i;
@@ -1789,6 +1788,10 @@ function intToRoll(int: number) {
   return r.filter(Boolean);
 }
 
+export function rollsMatch(r1: number[], r2: number[]) {
+  return sortDigits(rollToInt(r1)) === sortDigits(rollToInt(r2));
+}
+
 export function getCategoryScore(cat: number, roll: number[]) {
   const r = rollToInt(roll);
   const iaw = index5(r);
@@ -1799,7 +1802,7 @@ export function getAdvice(
   scoreboard: number[],
   rollNumber: number,
   roll: number[]
-) {
+): string | number | number[] {
   const r = rollToInt(roll);
   console.log("getAdvice", scoreboard, rollNumber, r);
   const upperScore = sum(scoreboard, 0, 5);
@@ -1834,8 +1837,6 @@ export function getAdvice(
   computeExpectedValuesAfterChoice1();
   computeExpectedValuesAfterRoll1();
 
-  if (rollNumber === 1) {
-    //handicap += a1[e1[iaw]] - a1[ia];
-    return intToRoll(ROLLS[e1[rollIndex]]);
-  }
+  //handicap += a1[e1[iaw]] - a1[ia];
+  return intToRoll(ROLLS[e1[rollIndex]]);
 }
