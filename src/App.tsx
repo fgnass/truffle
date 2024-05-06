@@ -1,7 +1,7 @@
 import _ from "lodash";
-import { Game } from "./game";
+import { Game } from "./Game";
 import { allPlayersNamed, started } from "./state";
-import { Setup } from "./setup";
+import { Setup } from "./Setup";
 import { PlayerNames } from "./PlayerNames";
 
 export function App() {
