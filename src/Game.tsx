@@ -18,9 +18,9 @@ import {
   players,
   digging,
 } from "./state";
-import { Scene } from "./three/scene";
+import { Scene } from "./Scene";
 import { Button } from "./styled";
-import { Pig } from "./pig";
+import { Pig } from "./Pig";
 
 export function Game() {
   const {
