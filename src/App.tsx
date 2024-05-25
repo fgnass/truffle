@@ -6,7 +6,6 @@ import { PlayerNames } from "./PlayerNames";
 import { LeaderBoard } from "./LeaderBoard";
 
 export function App() {
-  console.log(allPlayersNamed.value);
   if (!started.value) return <Setup />;
   if (!allPlayersNamed.value) return <PlayerNames />;
   if (gameFinished.value) return <LeaderBoard />;

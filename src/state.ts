@@ -7,7 +7,8 @@ import { getAdvice, getCategoryScore, rollsMatch } from "./strategy";
 import alasql from "alasql";
 
 export const started = signal(false);
-export const manual = signal(false);
+export const virtualDice = signal(true);
+export const computerPlayer = signal(false);
 export const throwing = signal(0);
 export const digging = signal(0);
 export const currentPlayer = signal(0);
@@ -40,8 +41,8 @@ function sum(a: number | null, b: number | null) {
 }
 
 export class PlayerState {
+  human = true;
   name = signal<string | null>(null);
-
   throwNum = signal(0);
   throwing = signal(0);
   perfect = signal(false);
@@ -81,15 +82,10 @@ export class PlayerState {
   });
 
   advice = computed<null | string | number | number[]>(() => {
-    console.log(this.throwNum.value, this.roll.value.length);
     const active = this.throwNum.value > 0 && this.throwNum.value <= 3;
-    if (this.roll.value.length !== 5 || !active) {
-      console.log("Exit");
-      return null;
-    }
+    if (this.roll.value.length !== 5 || !active) return null;
     const scores = this.scores.value.map((s) => s ?? -1);
     const a = getAdvice(scores, this.throwNum.value, this.roll.value);
-    console.log("Advice", a);
     if (a instanceof Array && a.length === 5 && this.throwNum.value < 3) {
       return getAdvice(scores, 3, this.roll.value);
     }
@@ -133,7 +129,6 @@ export class PlayerState {
           return selected;
         });
       } else if (typeof this.advice.value === "number") {
-        console.log("Assign to cat", this.advice.value);
         assignScore(this.advice.value);
       }
     });
@@ -157,6 +152,34 @@ class PlayerStateWithHistory extends PlayerState {
   }
 }
 
+class ComputerPlayer extends PlayerStateWithHistory {
+  constructor() {
+    super();
+    this.human = false;
+    this.name.value = "Piggy";
+    effect(() => {
+      if (currentPlayerState.value === this) {
+        const isBusy = digging.value || throwing.value;
+        const advice = this.advice.value;
+        const askedForAdvice = this.adviceNeeded.value;
+        if (!isBusy) {
+          if (advice) {
+            if (askedForAdvice) {
+              if (Array.isArray(advice)) {
+                setTimeout(rollDice, 800);
+              }
+            } else {
+              this.adviceNeeded.value = true;
+            }
+          } else if (this.throwNum.value < 4) {
+            rollDice();
+          }
+        }
+      }
+    });
+  }
+}
+
 export const players = signal<PlayerStateWithHistory[]>([]);
 
 export function addPlayer() {
@@ -171,6 +194,9 @@ addPlayer();
 
 export function start() {
   currentPlayer.value = 0;
+  if (computerPlayer.value) {
+    players.value.push(new ComputerPlayer());
+  }
   started.value = true;
 }
 
@@ -216,10 +242,12 @@ export function del() {
 }
 
 export function select(index: number) {
-  const { selection } = currentPlayerState.value;
-  selection.value = selection.value.map((selected, i) =>
-    i === index ? !selected : selected
-  );
+  const { selection, human } = currentPlayerState.value;
+  if (human) {
+    selection.value = selection.value.map((selected, i) =>
+      i === index ? !selected : selected
+    );
+  }
 }
 
 export function rollDice() {
@@ -232,25 +260,29 @@ export function rollDice() {
     adviceNeeded,
     prevState,
   } = currentPlayerState.value;
-  const keep = roll.value.filter((_, i) => selection.value[i]);
-  perfect.value =
-    !adviceNeeded.value &&
-    advice.value instanceof Array &&
-    rollsMatch(advice.value, keep);
-  roll.value = keep;
-  prevState.value = null;
-  selection.value = Array(5).fill(true).fill(false, roll.value.length);
-  adviceNeeded.value = false;
-  if (!throwing.value) throwNum.value++;
-  if (!manual.value) {
-    throwing.value = 5 - roll.value.length;
-  }
+  batch(() => {
+    const keep = roll.value.filter((_, i) => selection.value[i]);
+    perfect.value =
+      !adviceNeeded.value &&
+      advice.value instanceof Array &&
+      rollsMatch(advice.value, keep);
+    roll.value = keep;
+    prevState.value = null;
+    selection.value = Array(5).fill(true).fill(false, roll.value.length);
+    adviceNeeded.value = false;
+    if (!throwing.value) throwNum.value++;
+    if (virtualDice.value) {
+      throwing.value = 5 - roll.value.length;
+    }
+  });
 }
 
 export function setResult(result: number[]) {
-  throwing.value = 0;
-  const { roll } = currentPlayerState.value;
-  roll.value = roll.value.concat(result).slice(0, 5);
+  batch(() => {
+    throwing.value = 0;
+    const { roll } = currentPlayerState.value;
+    roll.value = roll.value.concat(result).slice(0, 5);
+  });
 }
 
 export function assignScore(cat: number) {
@@ -284,10 +316,12 @@ export function assignScore(cat: number) {
 }
 
 export function nextPlayer() {
-  currentPlayerState.value.perfect.value = false;
-  currentPlayerState.value.prevState.value = null;
-  currentPlayer.value = (currentPlayer.value + 1) % players.value.length;
-  currentPlayerState.value.throwNum.value = 0;
+  batch(() => {
+    currentPlayerState.value.perfect.value = false;
+    currentPlayerState.value.prevState.value = null;
+    currentPlayer.value = (currentPlayer.value + 1) % players.value.length;
+    currentPlayerState.value.throwNum.value = 0;
+  });
 }
 
 export function undo() {

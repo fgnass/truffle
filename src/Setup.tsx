@@ -1,5 +1,13 @@
 import { Toggle } from "./Toggle";
-import { players, addPlayer, removePlayer, start, manual, i18n } from "./state";
+import {
+  players,
+  addPlayer,
+  removePlayer,
+  start,
+  virtualDice,
+  i18n,
+  computerPlayer,
+} from "./state";
 import { Button } from "./styled";
 
 export function Setup() {
@@ -13,8 +21,17 @@ export function Setup() {
       </div>
       <label class="flex gap-2 items-center">
         <div>{i18n.value.virtualDice}</div>
-        <Toggle checked={manual.value} onChange={(v) => (manual.value = v)} />
-        <div>{i18n.value.realDice}</div>
+        <Toggle
+          checked={virtualDice.value}
+          onChange={(v) => (virtualDice.value = v)}
+        />
+      </label>
+      <label class="flex gap-2 items-center">
+        <div>{i18n.value.computerPlayer}</div>
+        <Toggle
+          checked={computerPlayer.value}
+          onChange={(v) => (computerPlayer.value = v)}
+        />
       </label>
       <Button onClick={start}>{i18n.value.start}</Button>
     </div>

@@ -1804,7 +1804,6 @@ export function getAdvice(
   roll: number[]
 ): string | number | number[] {
   const r = rollToInt(roll);
-  console.log("getAdvice", scoreboard, rollNumber, r);
   const upperScore = sum(scoreboard, 0, 5);
   const lowerScore = sum(scoreboard, 6, 12);
 
@@ -1815,7 +1814,6 @@ export function getAdvice(
   }
 
   const rollIndex = index5(sortDigits(r));
-  //console.log(`${rollNumber}. Wurf: ${ROLLS[rollIndex + 210]}`);
 
   computeExpectedValuesAfterRoll3(indexScore(scoreboard));
   if (rollNumber === 3) {

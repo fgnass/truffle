@@ -193,9 +193,7 @@ export class Scene extends Component<Props> {
 
   private addResult(value: number) {
     this.result.push(value);
-    console.log(value, this.result.length, "of", this.throwing);
     if (this.result.length === this.throwing) {
-      console.log("Done!");
       this.props.onResult(this.result);
     }
   }
@@ -229,11 +227,9 @@ export class Scene extends Component<Props> {
 
   throwDice() {
     if (this.throwing) {
-      console.log("Already throwing");
       this.shake();
       return;
     }
-    console.log("Throw!");
     this.throwing = this.props.numberOfDice;
     this.result = [];
     for (let i = 0; i < this.throwing; i++) {

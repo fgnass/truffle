@@ -14,9 +14,10 @@ import {
   throwing,
   setResult,
   nextPlayer,
-  manual,
+  virtualDice,
   players,
   digging,
+  computerPlayer,
 } from "./state";
 import { Scene } from "./Scene";
 import { Button } from "./styled";
@@ -34,25 +35,32 @@ export function Game() {
     perfect,
     adviceNeeded,
     name,
+    human,
   } = currentPlayerState.value;
 
   const t = i18n.value;
   const rollComplete = roll.value.length === 5;
-  const showInput = manual.value && !rollComplete;
+  const showInput = !virtualDice.value && !rollComplete;
   const selected = selection.value.filter(Boolean).length;
   const throwInProgress = throwing.value > 0;
   const lastThrow = throwNum.value >= 3;
 
   const shouldAssign =
-    selected === 5 ||
-    (lastThrow && rollComplete) ||
-    (manual.value && !adviceNeeded.value && rollComplete);
+    human &&
+    (selected === 5 ||
+      (lastThrow && rollComplete) ||
+      (!virtualDice.value && !adviceNeeded.value && rollComplete));
 
   const shouldSelect =
-    !manual.value && rollComplete && throwNum.value < 3 && !selected;
+    human &&
+    virtualDice.value &&
+    rollComplete &&
+    throwNum.value < 3 &&
+    !selected;
 
   const canThrow =
-    (!manual.value || throwNum.value > 0) &&
+    human &&
+    (virtualDice.value || throwNum.value > 0) &&
     round.value <= 13 &&
     !digging.value &&
     !lastThrow &&
@@ -67,7 +75,7 @@ export function Game() {
           {throwNum.value > 0 && throwNum.value <= 3 && (
             <span class="font-extralight"> – {t.rollX(throwNum.value)}</span>
           )}
-          {prevState.value && (
+          {human && prevState.value && (
             <button onClick={undo}>
               {prevState.value.redo ? <RedoIcon /> : <UndoIcon />}
             </button>
@@ -113,7 +121,7 @@ export function Game() {
               )
             )}
             <div class="flex-1 flex justify-center items-center">
-              {rollComplete && !adviceNeeded.value && (
+              {rollComplete && !adviceNeeded.value && !computerPlayer.value && (
                 <Button secondary onClick={() => (adviceNeeded.value = true)}>
                   <PigIcon />
                 </Button>
@@ -159,7 +167,7 @@ export function Game() {
               : t.rollDice}
           </Button>
         )}
-        {adviceNeeded.value && !throwNum.value && (
+        {!virtualDice.value && adviceNeeded.value && !throwNum.value && (
           <div class="flex gap-2">
             <Button onClick={() => (throwNum.value = 1)}>1. Wurf</Button>
             <Button onClick={() => (throwNum.value = 2)}>2. Wurf</Button>

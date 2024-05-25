@@ -17,7 +17,6 @@ export function PlayerNames() {
           onClick={() => {
             const player = players.value[num.value];
             if (name.value) {
-              console.log("Selected", name.value);
               player.name.value = name.value;
               num.value++;
               name.value = null;
