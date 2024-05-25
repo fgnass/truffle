@@ -39,7 +39,7 @@ function sum(a: number | null, b: number | null) {
   return (a ?? 0) + (b ?? 0);
 }
 
-class PlayerState {
+export class PlayerState {
   name = signal<string | null>(null);
 
   throwNum = signal(0);
@@ -56,7 +56,7 @@ class PlayerState {
   lowerScore = computed(() => this.scores.value.slice(6).reduce(sum));
 
   scoreboardFull = computed(() => {
-    return this.scores.value.filter((s) => s !== null).length > 1;
+    //return this.scores.value.filter((s) => s !== null).length > 0;
     return this.scores.value.every((s) => s !== null);
   });
 

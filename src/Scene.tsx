@@ -2,7 +2,7 @@ import { Component } from "preact";
 import * as THREE from "three";
 import * as CANNON from "cannon-es";
 import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
-import CannonDebugger from "cannon-es-debugger";
+//import CannonDebugger from "cannon-es-debugger";
 
 type Dice = { mesh: THREE.Group; body: CANNON.Body };
 
@@ -74,7 +74,7 @@ export class Scene extends Component<Props> {
 
     this.diceMesh = createDiceMesh();
 
-    const cannonDebugger = CannonDebugger(this.scene, this.physicsWorld);
+    //const cannonDebugger = CannonDebugger(this.scene, this.physicsWorld);
 
     this.renderScene = (() => {
       this.physicsWorld.fixedStep();

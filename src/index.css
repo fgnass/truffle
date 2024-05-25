@@ -28,7 +28,7 @@ button svg {
 }
 
 #app {
-  @apply h-full flex flex-col px-3;
+  @apply h-full flex flex-col;
 }
 
 .die {

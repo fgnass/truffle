@@ -21,6 +21,7 @@ import {
 import { Scene } from "./Scene";
 import { Button } from "./styled";
 import { Pig } from "./Pig";
+import { ScoreBox } from "./ScoreBox";
 
 export function Game() {
   const {
@@ -75,18 +76,18 @@ export function Game() {
         <div class="grid grid-cols-2 gap-4">
           <div class="grid row-span-7 grid-rows-subgrid">
             {scores.value.slice(0, 6).map((score, i) => (
-              <Scorebox
+              <ScoreBox
                 key={i}
                 category={i18n.value.categoryNames[i]}
                 score={score}
                 onClick={() => assignScore(i)}
               />
             ))}
-            <Scorebox category={t.bonus} score={bonus.value} />
+            <ScoreBox category={t.bonus} score={bonus.value} />
           </div>
           <div class="grid row-span-7 grid-rows-subgrid">
             {scores.value.slice(6).map((score, i) => (
-              <Scorebox
+              <ScoreBox
                 key={i}
                 category={i18n.value.categoryNames[i + 6]}
                 score={score}
@@ -177,30 +178,6 @@ export function Game() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function Scorebox({
-  category,
-  score,
-  onClick,
-}: {
-  category: string;
-  score: number | null;
-  onClick?: () => unknown;
-}) {
-  return (
-    <div
-      class="border-b border-neutral-400 p-1 grid grid-cols-[5fr_2fr] items-end min-h-10"
-      onClick={onClick}
-    >
-      <div class="w-[min(4rem,100%)] justify-self-start text-xs leading-tight">
-        {category}
-      </div>
-      <div class="font-digits justify-self-end text-blue-700 leading-none text-lg">
-        {score === 0 ? "–" : score}
-      </div>
     </div>
   );
 }
