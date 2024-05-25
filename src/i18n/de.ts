@@ -30,6 +30,7 @@ const i18n: I18n = {
   perfect: "Perfekt!",
   rematch: "Revanche",
   newGame: "Neues Spiel",
+  numberOfPlayers: "Anzahl Spieler",
   nextPlayer: "Nächster Spieler",
   selectKeepers: "Wähle die Würfel, die Du behalten möchtest.",
   pickCategory: "Wähle eine Kategorie für deine Punkte aus.",

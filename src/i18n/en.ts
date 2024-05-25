@@ -28,6 +28,7 @@ const i18n = {
   rematch: "Rematch",
   newGame: "New game",
   nextPlayer: "Next player",
+  numberOfPlayers: "Number of players",
   selectKeepers: "Select the dice you want to keep.",
   pickCategory: "Pick a category for your score.",
   clickDiceToEnterRoll: "Click on the dice to enter the roll:",
