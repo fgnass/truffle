@@ -173,7 +173,7 @@ export function Game() {
       {perfect.value && (
         <div class="fixed bottom-[35%] left-1/2 -translate-x-1/2">
           <div key={throwNum.value} class="animate-fly font-extrabold italic">
-            Perfect!
+            {t.perfect}
           </div>
         </div>
       )}

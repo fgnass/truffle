@@ -1,4 +1,4 @@
-import { Signal, batch, computed, effect, signal } from "@preact/signals";
+import { batch, computed, effect, signal } from "@preact/signals";
 import _ from "lodash";
 
 import * as translations from "./i18n";
@@ -55,7 +55,10 @@ class PlayerState {
 
   lowerScore = computed(() => this.scores.value.slice(6).reduce(sum));
 
-  scoreboardFull = computed(() => this.scores.value.every((s) => s !== null));
+  scoreboardFull = computed(() => {
+    return this.scores.value.filter((s) => s !== null).length > 1;
+    return this.scores.value.every((s) => s !== null);
+  });
 
   upperSectionFull = computed(() =>
     this.scores.value.slice(0, 6).every((s) => s !== null)
@@ -69,12 +72,13 @@ class PlayerState {
       : null
   );
 
-  totalScore = computed(
-    () =>
-      (this.lowerScore.value ?? 0) +
+  totalScore = computed(() => {
+    return (
+      (this.upperScore.value ?? 0) +
       (this.bonus.value ?? 0) +
       (this.lowerScore.value ?? 0)
-  );
+    );
+  });
 
   advice = computed<null | string | number | number[]>(() => {
     console.log(this.throwNum.value, this.roll.value.length);
@@ -92,10 +96,7 @@ class PlayerState {
     return a;
   });
 
-  number: Signal<number>;
-
-  constructor(number: number) {
-    this.number = signal(number);
+  constructor() {
     effect(() => {
       const name = this.name.value;
       if (name) {
@@ -103,7 +104,6 @@ class PlayerState {
           "if not exists (select * from players where name = ?) insert into players values (?)",
           [name, name]
         );
-        //console.log(await alasql.promise("select * from players"));
       }
     });
 
@@ -138,21 +138,29 @@ class PlayerState {
       }
     });
   }
+
+  reset() {
+    this.scores.value = Array(13).fill(null);
+    this.selection.value = Array(5).fill(false);
+    this.roll.value = [];
+    this.throwNum.value = 0;
+    this.throwing.value = 0;
+    this.perfect.value = false;
+    this.adviceNeeded.value = false;
+  }
 }
 
 class PlayerStateWithHistory extends PlayerState {
   prevState = signal<Snapshot | null>(null);
-  constructor(number: number) {
-    super(number);
+  constructor() {
+    super();
   }
 }
 
 export const players = signal<PlayerStateWithHistory[]>([]);
 
 export function addPlayer() {
-  players.value = players.value.concat(
-    new PlayerStateWithHistory(players.value.length + 1)
-  );
+  players.value = players.value.concat(new PlayerStateWithHistory());
 }
 
 export function removePlayer() {
@@ -162,7 +170,15 @@ export function removePlayer() {
 addPlayer();
 
 export function start() {
+  currentPlayer.value = 0;
   started.value = true;
+}
+
+export function rematch() {
+  batch(() => {
+    currentPlayer.value = 0;
+    players.value.forEach((p) => p.reset());
+  });
 }
 
 export function newGame() {

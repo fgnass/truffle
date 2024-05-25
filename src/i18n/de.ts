@@ -28,7 +28,8 @@ const i18n: I18n = {
   rollXDice: (x: number) =>
     x === 1 ? `Einen Würfel würfeln` : `${x} Würfel würfeln`,
   perfect: "Perfekt!",
-  playAgain: "Neues Spiel",
+  rematch: "Revanche",
+  newGame: "Neues Spiel",
   nextPlayer: "Nächster Spieler",
   selectKeepers: "Wähle die Würfel, die Du behalten möchtest.",
   pickCategory: "Wähle eine Kategorie für deine Punkte aus.",
