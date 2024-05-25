@@ -1,5 +1,5 @@
 import { ScoreCard } from "./ScoreCard";
-import { newGame, finalRanking, i18n, rematch, players } from "./state";
+import { newGame, finalRanking, i18n, playAgain, players } from "./state";
 import { Button } from "./styled";
 
 export function LeaderBoard() {
@@ -21,7 +21,7 @@ export function LeaderBoard() {
         ))}
       </div>
       <div class="flex flex-col items-center gap-2">
-        <Button onClick={rematch}>{i18n.value.rematch}</Button>
+        <Button onClick={playAgain}>{i18n.value.playAgain}</Button>
         <Button secondary onClick={newGame}>
           {i18n.value.newGame}
         </Button>

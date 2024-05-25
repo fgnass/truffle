@@ -174,7 +174,7 @@ export function start() {
   started.value = true;
 }
 
-export function rematch() {
+export function playAgain() {
   batch(() => {
     currentPlayer.value = 0;
     players.value.forEach((p) => p.reset());

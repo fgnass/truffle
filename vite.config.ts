@@ -13,6 +13,7 @@ export default defineConfig({
         name: "Truffle",
         short_name: "truffle",
         description: "A dice rolling game",
+        display: "fullscreen",
         theme_color: "#ffffff",
         icons: [
           {
