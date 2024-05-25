@@ -25,7 +25,7 @@ const i18n = {
   reRollAll: "Re-roll all",
   rollXDice: (x: number) => (x === 1 ? `Roll one die` : `Roll ${x} dice`),
   perfect: "Perfect!",
-  rematch: "Rematch",
+  playAgain: "Play again",
   newGame: "New game",
   nextPlayer: "Next player",
   numberOfPlayers: "Number of players",
