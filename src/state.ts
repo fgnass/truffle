@@ -95,7 +95,7 @@ export class PlayerState {
   constructor() {
     effect(() => {
       const name = this.name.value;
-      if (name) {
+      if (name && this.human) {
         alasql(
           "if not exists (select * from players where name = ?) insert into players values (?)",
           [name, name]
