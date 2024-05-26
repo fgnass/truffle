@@ -40,7 +40,7 @@ export class Scene extends Component<Props> {
     });
     this.renderer.useLegacyLights = true;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(window.devicePixelRatio);
 
     this.scene = new THREE.Scene();
 
