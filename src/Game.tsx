@@ -88,6 +88,7 @@ export function Game() {
                 key={i}
                 category={i18n.value.categoryNames[i]}
                 score={score}
+                prevScore={prevState.value?.scores[i]}
                 onClick={() => assignScore(i)}
               />
             ))}
@@ -99,6 +100,7 @@ export function Game() {
                 key={i}
                 category={i18n.value.categoryNames[i + 6]}
                 score={score}
+                prevScore={prevState.value?.scores[i + 6]}
                 onClick={() => assignScore(i + 6)}
               />
             ))}
