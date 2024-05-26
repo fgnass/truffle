@@ -1,5 +1,5 @@
 import { batch, computed, effect, signal } from "@preact/signals";
-import _, { values } from "lodash";
+import _ from "lodash";
 
 import * as translations from "./i18n";
 import { getAdvice, getCategoryScore, rollsMatch } from "./strategy";
