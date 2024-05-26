@@ -2,9 +2,10 @@ import { i18n } from "./state";
 import { Button } from "./styled";
 
 export function ShareButton() {
-  if (!navigator.canShare?.()) return null;
+  const data = { url: location.href };
+  if (!navigator.canShare?.(data)) return null;
   return (
-    <Button secondary onClick={() => navigator.share({ url: location.href })}>
+    <Button secondary onClick={() => navigator.share(data)}>
       {i18n.value.shareWithFriends}
     </Button>
   );
