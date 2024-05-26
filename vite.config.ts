@@ -36,7 +36,14 @@ export default defineConfig({
         ],
         screenshots: [
           {
-            src: "/screenshot.png",
+            src: "/screenshot1.png",
+            sizes: "440x720",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Splash Screen",
+          },
+          {
+            src: "/screenshot2.png",
             sizes: "440x720",
             type: "image/png",
             form_factor: "narrow",
