@@ -181,7 +181,10 @@ export function Game() {
       <Scene numberOfDice={throwing.value} onResult={setResult} />
       {perfect.value && (
         <div class="fixed bottom-[35%] left-1/2 -translate-x-1/2">
-          <div key={throwNum.value} class="animate-fly font-extrabold italic">
+          <div
+            key={throwNum.value}
+            class="animate-fly font-extrabold italic text-primary-600"
+          >
             {t.perfect}
           </div>
         </div>
