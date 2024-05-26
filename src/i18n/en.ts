@@ -32,7 +32,7 @@ const i18n = {
   selectKeepers: "Select the dice you want to keep.",
   pickCategory: "Pick a category for your score.",
   clickDiceToEnterRoll: "Click on the dice to enter the roll:",
-  shareWithFriends: "Share with friends",
+  shareWithFriends: "Share this app with friends",
 };
 
 export default i18n;

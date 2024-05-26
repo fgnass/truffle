@@ -13,7 +13,7 @@ import { Button } from "./styled";
 
 export function Setup() {
   return (
-    <div class="flex-1 flex flex-col items-center justify-center gap-3 p-3">
+    <div class="flex-1 flex flex-col items-center justify-center gap-3 px-3 py-6">
       <div class="flex-1"></div>
       <div>{i18n.value.numberOfPlayers}</div>
       <div class="flex gap-3 items-center">

@@ -36,7 +36,7 @@ const i18n: I18n = {
   pickCategory: "Wähle eine Kategorie für deine Punkte aus.",
   clickDiceToEnterRoll:
     "Klick auf die Würfel, um einzutragen was gewürfelt wurde:",
-  shareWithFriends: "Mit Freunden teilen",
+  shareWithFriends: "Die App mit Freunden teilen",
 };
 
 export default i18n;
