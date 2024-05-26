@@ -1,5 +1,10 @@
-import { Fragment } from "preact";
-import { Combobox, Transition } from "@headlessui/react";
+import {
+  Combobox,
+  ComboboxButton,
+  ComboboxInput,
+  ComboboxOption,
+  ComboboxOptions,
+} from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "./icons";
 import { Signal, useSignal } from "@preact/signals";
 import { tw, variants } from "classname-variants";
@@ -20,70 +25,66 @@ type Props = {
 };
 export default function AutoComplete({ options, selected }: Props) {
   const query = useSignal("");
-
+  const v = query.value;
   const filteredOptions =
-    query.value === ""
+    v === ""
       ? options
       : options.filter((value) =>
           value
             .toLowerCase()
             .replace(/\s+/g, "")
-            .includes(query.value.toLowerCase().replace(/\s+/g, ""))
+            .includes(v.toLowerCase().replace(/\s+/g, ""))
         );
 
+  if (v && !filteredOptions.includes(v)) {
+    filteredOptions.unshift(v);
+  }
+  console.log(filteredOptions);
+
   return (
-    <Combobox value={selected.value} onChange={(v) => (selected.value = v)}>
+    <Combobox
+      immediate
+      value={selected.value}
+      onChange={(v) => (selected.value = v)}
+    >
       <div className="relative">
         <div className="relative">
-          <Combobox.Input
+          <ComboboxInput
             autoComplete="off"
             className="w-full border rounded border-primary-600 py-2 pl-3 pr-10 text-sm"
             onChange={(event: any) => {
-              query.value = event.target.value;
+              const v = event.target.value.trim();
+              query.value = v.charAt(0).toUpperCase() + v.slice(1);
             }}
           />
-          <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
+          <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
             <ChevronUpDownIcon />
-          </Combobox.Button>
+          </ComboboxButton>
         </div>
-        <Transition
-          as={Fragment}
-          leave="transition ease-in duration-100"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-          afterLeave={() => (query.value = "")}
-        >
-          <Combobox.Options
-            hidden={!filteredOptions.length}
-            className="absolute mt-1 max-h-60 w-full overflow-auto rounded bg-white py-1 shadow ring-1 ring-black/5 focus:outline-none1"
-          >
-            <Combobox.Option value={query.value} className={optionClass}>
-              {query.value}
-            </Combobox.Option>
-            {filteredOptions.map((name) => (
-              <Combobox.Option key={name} className={optionClass} value={name}>
-                {({ selected, active }) => (
-                  <>
+        <ComboboxOptions className="empty:hidden absolute mt-1 max-h-60 w-full overflow-auto rounded bg-white py-1 shadow ring-1 ring-black/5 focus:outline-none1">
+          {filteredOptions.map((name) => (
+            <ComboboxOption key={name} className={optionClass} value={name}>
+              {({ selected, active }) => (
+                <>
+                  <span
+                    className={`block truncate ${
+                      selected ? "font-medium" : "font-normal"
+                    }`}
+                  >
+                    {name}
+                  </span>
+                  {selected ? (
                     <span
-                      className={`block truncate ${
-                        selected ? "font-medium" : "font-normal"
-                      }`}
+                      className={active ? "text-white" : "text-primary-600"}
                     >
-                      {name}
+                      <CheckIcon />
                     </span>
-                    {selected ? (
-                      <span
-                        className={active ? "text-white" : "text-primary-600"}
-                      >
-                        <CheckIcon />
-                      </span>
-                    ) : null}
-                  </>
-                )}
-              </Combobox.Option>
-            ))}
-          </Combobox.Options>
-        </Transition>
+                  ) : null}
+                </>
+              )}
+            </ComboboxOption>
+          ))}
+        </ComboboxOptions>
       </div>
     </Combobox>
   );

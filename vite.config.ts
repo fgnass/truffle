@@ -7,7 +7,6 @@ export default defineConfig({
   plugins: [
     preact(),
     VitePWA({
-      //registerType: "autoUpdate",
       includeAssets: ["/training.dat", "/kalam.woff2"],
       manifest: {
         name: "Truffle",

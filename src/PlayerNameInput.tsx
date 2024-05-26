@@ -13,7 +13,7 @@ export default function PlayerNameInput({ selected }: Props) {
     alasql("select name from players", undefined, (rows) => {
       knownPlayers.value = rows.map((row: { name: string }) => row.name);
     });
-  });
+  }, []);
 
   const notPlaying = useComputed(() =>
     knownPlayers.value.filter(
