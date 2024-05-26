@@ -1,5 +1,5 @@
 import { batch, computed, effect, signal } from "@preact/signals";
-import _ from "lodash";
+import _, { values } from "lodash";
 
 import * as translations from "./i18n";
 import { getAdvice, getCategoryScore, rollsMatch } from "./strategy";
@@ -12,9 +12,16 @@ export const computerPlayer = signal(false);
 export const throwing = signal(0);
 export const digging = signal(0);
 export const currentPlayer = signal(0);
-export const lang = signal<keyof typeof translations>("de");
 
-export const i18n = computed(() => translations[lang.value]);
+const preferredLang = Object.keys(translations).find((l) =>
+  navigator.language.toLowerCase().includes(l)
+);
+
+export const lang = signal(preferredLang ?? "en");
+
+export const i18n = computed(
+  () => translations[lang.value as keyof typeof translations]
+);
 
 export const allPlayersNamed = computed(() =>
   players.value.every((p) => !!p.name.value)
