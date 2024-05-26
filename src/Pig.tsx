@@ -1,13 +1,29 @@
-export function Pig({ value = 6 }: { value?: number }) {
-  const values = [...Array(52)].map((_, i) => `${i * 550} 0 550 443`);
+export function Pig({
+  value = 6,
+  short = true,
+}: {
+  value?: number;
+  short?: boolean;
+}) {
+  const duration = short ? "1.2s" : "5s";
+  const offset = short ? 15 : 0;
+  const frames = short ? 8 : 52;
+  const values = [...Array(frames)].map(
+    (_, i) => `${550 * (i + offset)} 0 550 443`
+  );
   return (
-    <svg width="225" height="176" fill="none" viewBox={`${550 * 51} 0 550 443`}>
+    <svg
+      width="225"
+      height="176"
+      fill="none"
+      viewBox={`${550 * (51 + offset)} 0 550 443`}
+    >
       <animate
         attributeName="viewBox"
         values={values.join(";")}
         calcMode="discrete"
         fill="freeze"
-        dur="5s"
+        dur={duration}
         repeatCount="1"
       />
       <path

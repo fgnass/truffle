@@ -110,9 +110,12 @@ export class PlayerState {
       const d = a instanceof Array ? a[0] : 0;
       digging.value = d;
       if (d) {
-        setTimeout(() => {
-          digging.value = 0;
-        }, 5500);
+        setTimeout(
+          () => {
+            digging.value = 0;
+          },
+          this.human ? 5000 : 1200
+        );
       }
     });
 
