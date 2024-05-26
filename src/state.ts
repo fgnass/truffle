@@ -163,7 +163,7 @@ class ComputerPlayer extends PlayerStateWithHistory {
         const advice = this.advice.value;
         const askedForAdvice = this.adviceNeeded.value;
         if (!isBusy) {
-          if (advice) {
+          if (advice !== null) {
             if (askedForAdvice) {
               if (Array.isArray(advice)) {
                 setTimeout(rollDice, 800);
