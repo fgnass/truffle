@@ -287,6 +287,10 @@ export class Scene extends Component<Props> {
   componentDidMount() {
     setTimeout(() => this.setup(), 1);
   }
+
+  componentWillUnmount() {
+    this.throwing = 0;
+  }
 }
 
 function createDiceMesh() {
