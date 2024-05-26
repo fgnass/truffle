@@ -69,8 +69,8 @@ export function Game() {
 
   return (
     <div class="flex-1 flex flex-col gap-6 text-sm w-[500px] max-w-full mx-auto">
-      <div class="bg-white shadow-paper p-6 flex flex-col gap-6 relative overflow-hidden mx-3">
-        <h1 class="font-bold text-xl flex items-center gap-1 leading-none min-h-6">
+      <div class="bg-white shadow-paper p-6 flex flex-col relative overflow-hidden m-3">
+        <h1 class="font-bold text-xl flex items-center gap-1 leading-none min-h-8">
           {players.value.length > 1 ? name.value : t.roundX(round.value)}
           {throwNum.value > 0 && throwNum.value <= 3 && (
             <span class="font-extralight"> – {t.rollX(throwNum.value)}</span>
@@ -81,7 +81,7 @@ export function Game() {
             </button>
           )}
         </h1>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-2 gap-4 mb-8">
           <div class="grid row-span-7 grid-rows-subgrid">
             {scores.value.slice(0, 6).map((score, i) => (
               <ScoreBox
@@ -124,7 +124,11 @@ export function Game() {
             )}
             <div class="flex-1 flex justify-center items-center">
               {rollComplete && !adviceNeeded.value && !computerPlayer.value && (
-                <Button secondary onClick={() => (adviceNeeded.value = true)}>
+                <Button
+                  circle
+                  secondary
+                  onClick={() => (adviceNeeded.value = true)}
+                >
                   <PigIcon />
                 </Button>
               )}
@@ -137,7 +141,7 @@ export function Game() {
         </div>
         {digging.value > 0 && (
           <div class="text-primary-800 absolute bottom-0 right-0">
-            <Pig value={digging.value} />
+            <Pig value={digging.value} short={!human} />
           </div>
         )}
       </div>

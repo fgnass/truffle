@@ -30,7 +30,7 @@ const i18n: I18n = {
   playAgain: "Nochmal spielen",
   newGame: "Neues Spiel",
   numberOfPlayers: "Anzahl Spieler",
-  computerPlayer: "Schweinchengegner",
+  computerPlayer: "Gegen Piggy spielen",
   nextPlayer: "Nächster Spieler",
   selectKeepers: "Wähle die Würfel, die Du behalten möchtest.",
   pickCategory: "Wähle eine Kategorie für deine Punkte aus.",

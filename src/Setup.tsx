@@ -13,13 +13,17 @@ import { Button } from "./styled";
 
 export function Setup() {
   return (
-    <div class="flex-1 flex flex-col items-center justify-center gap-3 px-3 py-6">
+    <div class="flex-1 flex flex-col items-center justify-center gap-3 px-3 py-6 text-lg">
       <div class="flex-1"></div>
       <div>{i18n.value.numberOfPlayers}</div>
       <div class="flex gap-3 items-center">
-        <Button onClick={removePlayer}>-</Button>
+        <Button circle onClick={removePlayer}>
+          –
+        </Button>
         <div>{players.value.length}</div>
-        <Button onClick={addPlayer}>+</Button>
+        <Button circle onClick={addPlayer}>
+          +
+        </Button>
       </div>
       <label class="flex gap-2 items-center">
         <div>{i18n.value.virtualDice}</div>

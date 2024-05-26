@@ -8,7 +8,7 @@ export function PlayerNames() {
   const name = useSignal<string | null>(null);
   return (
     <div class="p-6 space-y-3">
-      <div class="font-bold text-lg">Who is playing?</div>
+      <div class="font-bold text-xl">Who is playing?</div>
       <p>Enter a name or select one from the list of previous players:</p>
       <div class="font-bold">Player {num.value + 1}</div>
       <PlayerNameInput selected={name} />

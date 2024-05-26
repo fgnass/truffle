@@ -1,6 +1,6 @@
 export function Pig({
   value = 6,
-  short = true,
+  short = false,
 }: {
   value?: number;
   short?: boolean;
