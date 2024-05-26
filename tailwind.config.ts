@@ -28,9 +28,20 @@ const config: Config = {
             opacity: "0",
           },
         },
+        writeDown: {
+          from: {
+            opacity: "0",
+            scale: "4",
+          },
+          to: {
+            opacity: "1",
+            scale: "1",
+          },
+        },
       },
       animation: {
         fly: "fly 1300ms ease-in-out forwards",
+        writeDown: "writeDown 300ms ease-out forwards",
       },
     },
   },

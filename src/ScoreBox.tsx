@@ -16,7 +16,9 @@ export function ScoreBox({
         {category}
       </div>
       <div class="font-digits justify-self-end text-blue-700 leading-none text-lg">
-        {score === 0 ? "–" : score}
+        {score !== null && (
+          <div class="animate-writeDown">{score === 0 ? "–" : score}</div>
+        )}
       </div>
     </div>
   );
