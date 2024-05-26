@@ -16,7 +16,7 @@ html {
 
 html,
 body {
-  @apply h-full;
+  height: 100svh;
 }
 
 /* path:not([stroke]) {
