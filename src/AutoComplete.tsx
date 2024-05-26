@@ -39,13 +39,15 @@ export default function AutoComplete({ options, selected }: Props) {
   if (v && !filteredOptions.includes(v)) {
     filteredOptions.unshift(v);
   }
-  console.log(filteredOptions);
 
   return (
     <Combobox
       immediate
       value={selected.value}
-      onChange={(v) => (selected.value = v)}
+      onChange={(v) => {
+        selected.value = v;
+        query.value = "";
+      }}
     >
       <div className="relative">
         <div className="relative">
