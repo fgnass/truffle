@@ -265,7 +265,7 @@ export class Scene extends Component<Props> {
   render() {
     return (
       <div
-        class="fixed inset-0 max-h-[100svh] data-[throwing='0']:pointer-events-none"
+        class="absolute inset-0 max-h-[100svh] data-[throwing='0']:pointer-events-none"
         onClick={() => this.shake()}
         data-throwing={this.props.numberOfDice}
       />
