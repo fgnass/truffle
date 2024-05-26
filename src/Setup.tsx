@@ -1,3 +1,4 @@
+import { ShareButton } from "./ShareButton";
 import { Toggle } from "./Toggle";
 import {
   players,
@@ -13,6 +14,7 @@ import { Button } from "./styled";
 export function Setup() {
   return (
     <div class="flex-1 flex flex-col items-center justify-center gap-3 p-3">
+      <div class="flex-1"></div>
       <div>{i18n.value.numberOfPlayers}</div>
       <div class="flex gap-3 items-center">
         <Button onClick={removePlayer}>-</Button>
@@ -34,6 +36,8 @@ export function Setup() {
         />
       </label>
       <Button onClick={start}>{i18n.value.start}</Button>
+      <div class="flex-1"></div>
+      <ShareButton />
     </div>
   );
 }
