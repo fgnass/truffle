@@ -17,6 +17,7 @@ html {
 html,
 body {
   height: 100svh;
+  overscroll-behavior-x: none;
 }
 
 /* path:not([stroke]) {
