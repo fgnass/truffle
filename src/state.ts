@@ -207,6 +207,7 @@ export function start() {
   if (computerPlayer.value) {
     players.value.push(new ComputerPlayer());
   }
+  history.pushState(null, ""); // prevent back button from resetting game
   started.value = true;
 }
 
@@ -331,6 +332,7 @@ export function nextPlayer() {
     currentPlayerState.value.prevState.value = null;
     currentPlayer.value = (currentPlayer.value + 1) % players.value.length;
     currentPlayerState.value.throwNum.value = 0;
+    history.pushState(null, ""); // prevent back button from resetting game
   });
 }
 
