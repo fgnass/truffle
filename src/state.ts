@@ -130,6 +130,7 @@ export class PlayerState {
     effect(() => {
       if (digging.value) return;
       if (!this.adviceNeeded.value) return;
+      if (this.roll.value.length < 5) return;
       if (this.advice.value instanceof Array) {
         const a = [...this.advice.value];
         this.selection.value = this.roll.value.map((v) => {
@@ -140,6 +141,20 @@ export class PlayerState {
         });
       } else if (typeof this.advice.value === "number") {
         assignScore(this.advice.value);
+      }
+    });
+
+    // Save score when scoreboard is full
+    effect(() => {
+      if (this.scoreboardFull.value) {
+        alasql(
+          "create table if not exists scores (name string, score int, date datetime)"
+        );
+        alasql("insert into scores values (?, ?, ?)", [
+          this.name.value,
+          this.totalScore.value,
+          new Date(),
+        ]);
       }
     });
   }

@@ -1,11 +1,12 @@
 import { ScoreCard } from "../components/ScoreCard";
 import { newGame, finalRanking, i18n, playAgain, players } from "../state";
 import { Button } from "../components/Button";
+import { Highscores } from "../components/Highscores";
 
 export function LeaderBoard() {
   return (
     <div class="py-6">
-      <table class="mx-6 w-full">
+      <table class="mx-6">
         {finalRanking.value.map((p, i) => (
           <tr key={i}>
             <td>{p.name}</td>
@@ -19,6 +20,7 @@ export function LeaderBoard() {
             <ScoreCard player={p} />
           </div>
         ))}
+        <Highscores />
       </div>
       <div class="flex flex-col items-center gap-2">
         <Button onClick={playAgain}>{i18n.value.playAgain}</Button>
