@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { i18n, PlayerState } from "./state";
+import { i18n, PlayerState } from "../state";
 import { ScoreBox } from "./ScoreBox";
 
 type Props = { player: PlayerState };

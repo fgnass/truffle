@@ -1,7 +1,7 @@
 import { useSignal } from "@preact/signals";
-import PlayerNameInput from "./PlayerNameInput";
-import { i18n, players } from "./state";
-import { Button } from "./styled";
+import PlayerNameInput from "../components/PlayerNameInput";
+import { i18n, players } from "../state";
+import { Button } from "../components/Button";
 
 export function PlayerNames() {
   const num = useSignal(0);

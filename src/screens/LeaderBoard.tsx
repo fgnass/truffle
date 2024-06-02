@@ -1,6 +1,6 @@
-import { ScoreCard } from "./ScoreCard";
-import { newGame, finalRanking, i18n, playAgain, players } from "./state";
-import { Button } from "./styled";
+import { ScoreCard } from "../components/ScoreCard";
+import { newGame, finalRanking, i18n, playAgain, players } from "../state";
+import { Button } from "../components/Button";
 
 export function LeaderBoard() {
   return (

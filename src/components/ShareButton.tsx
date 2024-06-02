@@ -1,5 +1,5 @@
-import { i18n } from "./state";
-import { Button } from "./styled";
+import { i18n } from "../state";
+import { Button } from "./Button";
 
 export function ShareButton() {
   const data = { url: location.href };

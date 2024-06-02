@@ -1,9 +1,9 @@
 import _ from "lodash";
-import { Game } from "./Game";
+import { Game } from "./screens/Game";
 import { allPlayersNamed, gameFinished, started } from "./state";
-import { Setup } from "./Setup";
-import { PlayerNames } from "./PlayerNames";
-import { LeaderBoard } from "./LeaderBoard";
+import { Setup } from "./screens/Setup";
+import { PlayerNames } from "./screens/PlayerNames";
+import { LeaderBoard } from "./screens/LeaderBoard";
 
 export function App() {
   if (!started.value) return <Setup />;

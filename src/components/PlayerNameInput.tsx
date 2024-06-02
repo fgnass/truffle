@@ -1,5 +1,5 @@
 import { Signal, useComputed, useSignal } from "@preact/signals";
-import { players } from "./state";
+import { players } from "../state";
 import AutoComplete from "./AutoComplete";
 import { useEffect } from "preact/hooks";
 import alasql from "alasql";

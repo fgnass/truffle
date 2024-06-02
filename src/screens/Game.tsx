@@ -1,6 +1,6 @@
-import Die from "./Die";
+import Die from "../components/Die";
 import _ from "lodash";
-import { DeleteIcon, PigIcon, RedoIcon, UndoIcon } from "./icons";
+import { DeleteIcon, PigIcon, RedoIcon, UndoIcon } from "../components/icons";
 import {
   currentPlayerState,
   add,
@@ -18,11 +18,11 @@ import {
   players,
   digging,
   computerPlayer,
-} from "./state";
-import { Scene } from "./Scene";
-import { Button } from "./styled";
-import { Pig } from "./Pig";
-import { ScoreBox } from "./ScoreBox";
+} from "../state";
+import { Scene } from "../components/VirtualDice";
+import { Button } from "../components/Button";
+import { Pig } from "../components/Pig";
+import { ScoreBox } from "../components/ScoreBox";
 
 export function Game() {
   const {

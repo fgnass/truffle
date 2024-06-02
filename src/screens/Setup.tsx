@@ -1,5 +1,5 @@
-import { ShareButton } from "./ShareButton";
-import { Toggle } from "./Toggle";
+import { ShareButton } from "../components/ShareButton";
+import { Toggle } from "../components/Toggle";
 import {
   players,
   addPlayer,
@@ -8,8 +8,8 @@ import {
   virtualDice,
   i18n,
   computerPlayer,
-} from "./state";
-import { Button } from "./styled";
+} from "../state";
+import { Button } from "../components/Button";
 
 export function Setup() {
   return (
