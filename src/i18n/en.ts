@@ -28,6 +28,9 @@ const i18n = {
   newGame: "New game",
   nextPlayer: "Next player",
   numberOfPlayers: "Number of players",
+  whoIsPlaying: "Who is playing?",
+  enterPlayerName:
+    "Enter a name or select one from the list of previous players:",
   computerPlayer: "Play against Piggy",
   selectKeepers: "Select the dice you want to keep.",
   pickCategory: "Pick a category for your score.",

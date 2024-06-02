@@ -30,6 +30,8 @@ const i18n: I18n = {
   playAgain: "Nochmal spielen",
   newGame: "Neues Spiel",
   numberOfPlayers: "Anzahl Spieler",
+  whoIsPlaying: "Wer spielt?",
+  enterPlayerName: "Gib einen Namen ein oder wähle einen aus der Liste:",
   computerPlayer: "Gegen Piggy spielen",
   nextPlayer: "Nächster Spieler",
   selectKeepers: "Wähle die Würfel, die Du behalten möchtest.",

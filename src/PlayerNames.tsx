@@ -1,6 +1,6 @@
 import { useSignal } from "@preact/signals";
 import PlayerNameInput from "./PlayerNameInput";
-import { players } from "./state";
+import { i18n, players } from "./state";
 import { Button } from "./styled";
 
 export function PlayerNames() {
@@ -8,9 +8,9 @@ export function PlayerNames() {
   const name = useSignal<string | null>(null);
   return (
     <div class="p-6 space-y-3">
-      <div class="font-bold text-xl">Who is playing?</div>
-      <p>Enter a name or select one from the list of previous players:</p>
-      <div class="font-bold">Player {num.value + 1}</div>
+      <div class="font-bold text-xl">{i18n.value.whoIsPlaying}</div>
+      <p>{i18n.value.enterPlayerName}</p>
+      <div class="font-bold">{i18n.value.playerX(num.value + 1)}</div>
       <PlayerNameInput selected={name} />
       {!!name.value && (
         <Button
@@ -23,7 +23,9 @@ export function PlayerNames() {
             }
           }}
         >
-          Next
+          {num.value + 1 === players.value.length
+            ? i18n.value.start
+            : i18n.value.nextPlayer}
         </Button>
       )}
     </div>
