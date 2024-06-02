@@ -186,7 +186,7 @@ export function Game() {
       </div>
       <Scene numberOfDice={throwing.value} onResult={setResult} />
       {perfect.value && (
-        <div class="fixed bottom-[35%] left-1/2 -translate-x-1/2">
+        <div class="fixed bottom-[35%] left-1/2 -translate-x-1/2 pointer-events-none">
           <div
             key={throwNum.value}
             class="animate-fly font-extrabold italic text-primary-600"
