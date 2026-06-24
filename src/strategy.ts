@@ -1801,7 +1801,7 @@ export function getCategoryScore(cat: number, roll: number[]) {
 export function getAdvice(
   scoreboard: number[],
   rollNumber: number,
-  roll: number[]
+  roll: number[],
 ): string | number | number[] {
   const r = rollToInt(roll);
   const upperScore = sum(scoreboard, 0, 5);

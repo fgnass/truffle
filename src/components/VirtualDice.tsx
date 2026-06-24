@@ -182,12 +182,12 @@ export class Scene extends Component<Props> {
     this.cupTarget.x = clamp(
       this.cupTarget.x + ax * DEVICE.scale,
       -CUP.boundX,
-      CUP.boundX
+      CUP.boundX,
     );
     this.cupTarget.z = clamp(
       this.cupTarget.z - ay * DEVICE.scale,
       CUP.zMin,
-      CUP.zMax
+      CUP.zMax,
     );
   };
 
@@ -218,7 +218,7 @@ export class Scene extends Component<Props> {
     if (this.pointerStart) {
       const d = Math.hypot(
         e.clientX - this.pointerStart.x,
-        e.clientY - this.pointerStart.y
+        e.clientY - this.pointerStart.y,
       );
       if (d > SHAKE.tapMaxPx) this.pointerMoved = true;
     }
@@ -254,7 +254,11 @@ export class Scene extends Component<Props> {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.4 * Math.PI);
     this.scene.add(ambientLight);
     // Soft, even fill so the faces don't read as harshly shaded.
-    const fillLight = new THREE.HemisphereLight(0xffffff, 0xcdc7da, 0.35 * Math.PI);
+    const fillLight = new THREE.HemisphereLight(
+      0xffffff,
+      0xcdc7da,
+      0.35 * Math.PI,
+    );
     this.scene.add(fillLight);
     // DirectionalLight (not PointLight): VSM's gaussian blur only applies to
     // directional/spot shadows, so this is what actually softens the edge.
@@ -278,7 +282,7 @@ export class Scene extends Component<Props> {
       50,
       window.innerWidth / window.innerHeight,
       0.1,
-      200
+      200,
     );
     this.camera.position.set(0, 10, 32);
     this.camera.lookAt(0, 0, 10);
@@ -317,13 +321,13 @@ export class Scene extends Component<Props> {
       new THREE.PlaneGeometry(1000, 1000),
       new THREE.ShadowMaterial({
         opacity: 0.1,
-      })
+      }),
     );
     floor.receiveShadow = true;
     floor.position.y = -10;
     floor.quaternion.setFromAxisAngle(
       new THREE.Vector3(-1, 0, 0),
-      Math.PI * 0.5
+      Math.PI * 0.5,
     );
     this.scene.add(floor);
 
@@ -386,7 +390,7 @@ export class Scene extends Component<Props> {
       });
       body.quaternion.setFromVectors(
         new CANNON.Vec3(0, 0, 1),
-        new CANNON.Vec3(n.x, n.y, n.z)
+        new CANNON.Vec3(n.x, n.y, n.z),
       );
       body.position.set(point.x, point.y, point.z);
       this.physicsWorld.addBody(body);
@@ -412,13 +416,13 @@ export class Scene extends Component<Props> {
     cup.allowSleep = false;
     const zToY = new CANNON.Quaternion().setFromVectors(
       new CANNON.Vec3(0, 0, 1),
-      new CANNON.Vec3(0, 1, 0)
+      new CANNON.Vec3(0, 1, 0),
     );
     // Bottom: an up-facing plane the dice rest on while shaking.
     cup.addShape(
       new CANNON.Plane(),
       new CANNON.Vec3(0, -CUP.bottomOffset, 0),
-      zToY
+      zToY,
     );
     // Wall: a ring of inward-facing planes whose intersection is the cup bore.
     for (let i = 0; i < CUP.walls; i++) {
@@ -427,12 +431,12 @@ export class Scene extends Component<Props> {
       const oz = Math.sin(a);
       const q = new CANNON.Quaternion().setFromVectors(
         new CANNON.Vec3(0, 0, 1),
-        new CANNON.Vec3(-ox, 0, -oz)
+        new CANNON.Vec3(-ox, 0, -oz),
       );
       cup.addShape(
         new CANNON.Plane(),
         new CANNON.Vec3(ox * CUP.radius, 0, oz * CUP.radius),
-        q
+        q,
       );
     }
     cup.position.set(CUP.home.x, CUP.home.y, CUP.home.z);
@@ -444,11 +448,15 @@ export class Scene extends Component<Props> {
     const r = this.base.getBoundingClientRect();
     const nx = (clientX - r.left) / r.width;
     const ny = (clientY - r.top) / r.height;
-    this.cupTarget.x = clamp((nx * 2 - 1) * CUP.boundX, -CUP.boundX, CUP.boundX);
+    this.cupTarget.x = clamp(
+      (nx * 2 - 1) * CUP.boundX,
+      -CUP.boundX,
+      CUP.boundX,
+    );
     this.cupTarget.z = clamp(
       CUP.zMin + ny * (CUP.zMax - CUP.zMin),
       CUP.zMin,
-      CUP.zMax
+      CUP.zMax,
     );
   }
 
@@ -608,7 +616,7 @@ export class Scene extends Component<Props> {
           // contact, so only the lower-indexed one plays it to avoid doubling.
           diceSound.collision(v);
         }
-      }
+      },
     );
     dice.body.addEventListener("sleep", () => {
       const { tilt } = this.readUpFace(dice.body);
@@ -663,7 +671,7 @@ export class Scene extends Component<Props> {
     const worldNormal = body.quaternion.vmult(normal);
     const correction = new CANNON.Quaternion().setFromVectors(
       worldNormal,
-      new CANNON.Vec3(0, 1, 0)
+      new CANNON.Vec3(0, 1, 0),
     );
     body.quaternion = correction.mult(body.quaternion);
     // Freeze the settled die in place: mass 0 makes it effectively infinitely
@@ -782,17 +790,17 @@ export class Scene extends Component<Props> {
         body.position = new CANNON.Vec3(
           (rand() * 2 - 1) * CUP.boundX,
           CUP.home.y + rand() * 5,
-          CUP.zMin + rand() * (CUP.zMax - CUP.zMin)
+          CUP.zMin + rand() * (CUP.zMax - CUP.zMin),
         );
         body.quaternion.setFromEuler(
           rand() * Math.PI * 2,
           rand() * Math.PI * 2,
-          rand() * Math.PI * 2
+          rand() * Math.PI * 2,
         );
         body.angularVelocity.set(
           (rand() * 2 - 1) * 10,
           (rand() * 2 - 1) * 10,
-          (rand() * 2 - 1) * 10
+          (rand() * 2 - 1) * 10,
         );
         mesh.position.copy(body.position);
         mesh.quaternion.copy(body.quaternion as any);
@@ -809,7 +817,7 @@ export class Scene extends Component<Props> {
         body.position = new CANNON.Vec3(
           CUP.home.x + sx,
           CUP.home.y - CUP.bottomOffset + 0.5 * params.scale,
-          CUP.home.z + sz
+          CUP.home.z + sz,
         );
         mesh.position.copy(body.position);
 
@@ -919,7 +927,7 @@ function createDiceMesh() {
 function createInnerGeometry() {
   const baseGeometry = new THREE.PlaneGeometry(
     1 - 2 * params.edgeRadius,
-    1 - 2 * params.edgeRadius
+    1 - 2 * params.edgeRadius,
   );
   const offset = 0.48;
   return BufferGeometryUtils.mergeGeometries(
@@ -943,7 +951,7 @@ function createInnerGeometry() {
         .rotateY(0.5 * Math.PI)
         .translate(offset, 0, 0),
     ],
-    false
+    false,
   );
 }
 
@@ -954,7 +962,7 @@ function createBoxGeometry() {
     1,
     params.segments,
     params.segments,
-    params.segments
+    params.segments,
   );
 
   const positionAttr = boxGeometry.attributes.position;
@@ -966,7 +974,7 @@ function createBoxGeometry() {
     const subCube = new THREE.Vector3(
       Math.sign(position.x),
       Math.sign(position.y),
-      Math.sign(position.z)
+      Math.sign(position.z),
     ).multiplyScalar(subCubeHalfSize);
     const addition = new THREE.Vector3().subVectors(position, subCube);
 

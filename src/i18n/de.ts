@@ -137,7 +137,7 @@ const i18n: I18n = {
   truffleBadge: "Trüffel!",
   comboBadge: (n: number) => `Combo ×${n}`,
   piggyAskedBadge: (n: number) => `Piggy ${n}× gefragt`,
-  allTimeHigh: "Allzeit-Rekord! 🏆",
+  allTimeHigh: "Allzeit-Rekord!",
   cmpBest: "Persönliche Bestleistung!",
   cmpFirst: "Erstes Spiel!",
   cmpRankYours: (rank: number, of: number) => `#${rank} von deinen ${of}`,

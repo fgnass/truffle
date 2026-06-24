@@ -17,10 +17,9 @@ import { clearGames } from "../stats";
 import { distributeGame } from "../net";
 import { Button } from "./Button";
 import { IconButton } from "./IconButton";
-import { Overlay } from "./Overlay";
+import { Dialog } from "./Dialog";
 import { ShareButton } from "./ShareButton";
 import { ToggleRow } from "./ToggleRow";
-import { stitchedCard } from "./card";
 import { canInstall, promptInstall } from "../installPrompt";
 
 // The global settings sheet: the Piggy toggle, share, and — while a game is
@@ -34,11 +33,7 @@ export function Settings() {
   const close = () => (settingsOpen.value = false);
   return (
     <>
-      <Overlay onClose={close}>
-      <div
-        class={`w-full max-w-sm p-5 text-ink flex flex-col gap-4 animate-popIn ${stitchedCard}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <Dialog onClose={close} class="flex w-full max-w-sm flex-col gap-4 p-5">
         <div class="flex items-center justify-between">
           <h2 class="font-logo text-2xl text-ink">{t.settingsTitle}</h2>
           <IconButton onClick={close} aria-label={t.close}>
@@ -66,7 +61,7 @@ export function Settings() {
           onClick={() =>
             // Scope to the current roster during a game; all-time otherwise.
             openStats(
-              started.value ? players.value.map((p) => p.name.value ?? "") : []
+              started.value ? players.value.map((p) => p.name.value ?? "") : [],
             )
           }
         >
@@ -117,7 +112,7 @@ export function Settings() {
         )}
 
         <div class="flex justify-center pt-1">
-          <ShareButton class="gap-1.5 text-base font-medium text-primary-700 hover:text-primary-900" />
+          <ShareButton tone="light" />
         </div>
 
         <Button
@@ -128,38 +123,39 @@ export function Settings() {
           <Trash2 class="size-4" />
           {t.resetStats}
         </Button>
-      </div>
-      </Overlay>
+      </Dialog>
 
       {confirmReset && (
         // Confirm step for the irreversible wipe. Sits above the settings sheet;
         // its own backdrop tap cancels rather than deletes.
-        <Overlay onClose={() => setConfirmReset(false)}>
-          <div
-            class={`w-full max-w-xs p-5 text-ink flex flex-col gap-4 animate-popIn ${stitchedCard}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 class="font-logo text-2xl text-ink">{t.resetStats}</h2>
-            <p class="text-[0.95rem] leading-snug text-neutral-600">
-              {t.resetStatsBody}
-            </p>
-            <div class="flex gap-2">
-              <Button
-                intent="danger"
-                class="flex-1"
-                onClick={() => {
-                  clearGames();
-                  setConfirmReset(false);
-                }}
-              >
-                {t.resetStatsConfirm}
-              </Button>
-              <Button intent="secondary" class="flex-1" onClick={() => setConfirmReset(false)}>
-                {t.cancel}
-              </Button>
-            </div>
+        <Dialog
+          onClose={() => setConfirmReset(false)}
+          class="flex w-full max-w-xs flex-col gap-4 p-5"
+        >
+          <h2 class="font-logo text-2xl text-ink">{t.resetStats}</h2>
+          <p class="text-body leading-snug text-neutral-600">
+            {t.resetStatsBody}
+          </p>
+          <div class="flex gap-2">
+            <Button
+              intent="danger"
+              class="flex-1"
+              onClick={() => {
+                clearGames();
+                setConfirmReset(false);
+              }}
+            >
+              {t.resetStatsConfirm}
+            </Button>
+            <Button
+              intent="secondary"
+              class="flex-1"
+              onClick={() => setConfirmReset(false)}
+            >
+              {t.cancel}
+            </Button>
           </div>
-        </Overlay>
+        </Dialog>
       )}
     </>
   );

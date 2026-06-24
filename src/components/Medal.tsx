@@ -15,6 +15,10 @@ const DISC: Record<Kind, string> = {
 
 const SHADOW = "rgba(63, 26, 133, 0.7)"; // ink, slightly transparent — a softer hard-offset shadow
 
+// The medal's hard-offset drop shadow, shared so the results-row avatars (the
+// flip side of these coins) can carry the exact same lift.
+export const COIN_SHADOW = `1.5px 1.5px 0 ${SHADOW}`;
+
 // A darker shade of the disc — same hue, just deeper — for the dashed ring and
 // the rank number. Reduce only the oklch lightness (keeping chroma + hue) so it
 // stays saturated: dark gold / silver / bronze, not muddy brown. Mixing toward
@@ -37,12 +41,12 @@ export function Medal({
   const dark = darker(DISC[kind]);
   return (
     <span
-      class={`relative grid size-9 shrink-0 place-items-center rounded-full ${
+      class={`relative grid size-11 shrink-0 place-items-center rounded-full ${
         animate ? "animate-coinFlip" : ""
       }`}
       style={{
         backgroundColor: DISC[kind],
-        boxShadow: `1.5px 1.5px 0 ${SHADOW}`,
+        boxShadow: COIN_SHADOW,
         animationDelay: animate ? `${delay}ms` : undefined,
       }}
     >
@@ -85,7 +89,10 @@ export function Medal({
         )}
       </svg>
       {kind !== "poo" && (
-        <span class="relative text-base font-bold emboss" style={{ color: dark }}>
+        <span
+          class="emboss relative text-base font-bold"
+          style={{ color: dark }}
+        >
           {rank}
         </span>
       )}

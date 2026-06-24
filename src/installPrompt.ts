@@ -12,7 +12,7 @@ const deferredPrompt = signal<BeforeInstallPromptEvent | null>(null);
 export const installPromptOpen = signal(false);
 export const appInstalled = signal(isInstalled());
 export const canInstall = computed(
-  () => deferredPrompt.value !== null && !appInstalled.value
+  () => deferredPrompt.value !== null && !appInstalled.value,
 );
 
 function isInstalled() {

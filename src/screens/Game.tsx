@@ -60,7 +60,10 @@ function useDeviceShake(enabled: boolean, onShake: () => void) {
       const force = Math.sqrt(x * x + y * y + z * z);
       const now = performance.now();
 
-      if (force < SHAKE_THRESHOLD || now - lastShakeAt.current < SHAKE_COOLDOWN_MS) {
+      if (
+        force < SHAKE_THRESHOLD ||
+        now - lastShakeAt.current < SHAKE_COOLDOWN_MS
+      ) {
         return;
       }
 
@@ -93,7 +96,8 @@ function useDeviceTilt(targetRef: { current: HTMLElement | null }) {
     window.addEventListener("deviceorientation", handleOrientation, {
       passive: true,
     });
-    return () => window.removeEventListener("deviceorientation", handleOrientation);
+    return () =>
+      window.removeEventListener("deviceorientation", handleOrientation);
   }, [targetRef]);
 }
 
@@ -119,7 +123,8 @@ export function Game() {
   // to throw". Otherwise a coarse pointer (phone/tablet without sensor access)
   // swipes across the screen, and a fine pointer moves the mouse.
   const isTouch =
-    typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
+    typeof matchMedia !== "undefined" &&
+    matchMedia("(pointer: coarse)").matches;
   const variant = (motion: string, touch: string, mouse: string) =>
     motionAvailable.value ? motion : isTouch ? touch : mouse;
   const rollComplete = roll.value.length === 5;
@@ -134,11 +139,9 @@ export function Game() {
   // there is nothing to wait on, so they appear at once.
   const dealIn = rollComplete ? "deal-in" : "";
 
-  const shouldAssign =
-    human && (selected === 5 || (lastThrow && rollComplete));
+  const shouldAssign = human && (selected === 5 || (lastThrow && rollComplete));
 
-  const shouldSelect =
-    human && rollComplete && throwNum.value < 3 && !selected;
+  const shouldSelect = human && rollComplete && throwNum.value < 3 && !selected;
 
   const canThrow =
     human &&
@@ -169,11 +172,11 @@ export function Game() {
   useDeviceTilt(diceTiltRef);
 
   return (
-    <div class="flex-1 flex flex-col gap-3 text-base w-[min(100%,440px)] mx-auto px-2 py-2 sm:py-4">
+    <div class="mx-auto flex w-[min(100%,440px)] flex-1 flex-col gap-3 px-2 py-2 text-base sm:py-4">
       {online.value && <PlayerStrip />}
-      <div class="bg-white paper-pad p-4 sm:p-5 flex flex-col relative overflow-hidden rounded-xs border border-white/70 [view-transition-name:surface]">
-        <div class="mb-4 flex items-start justify-between gap-3 min-h-10">
-          <h1 class="flex flex-wrap items-baseline gap-x-2 gap-y-1 leading-none min-h-8">
+      <div class="paper-pad relative flex flex-col overflow-hidden rounded-xs border border-white/70 bg-white p-4 [view-transition-name:surface] sm:p-5">
+        <div class="mb-4 flex min-h-10 items-start justify-between gap-3">
+          <h1 class="flex min-h-8 flex-wrap items-baseline gap-x-2 gap-y-1 leading-none">
             <span
               key={currentPlayer.value}
               class="name-in font-digits text-[1.7rem] leading-none text-ink"
@@ -210,16 +213,13 @@ export function Game() {
           player={currentPlayerState.value}
           prevScores={prevState.value?.scores}
           onAssign={assignScore}
-          class="gap-x-3 sm:gap-x-4 mb-4"
+          class="mb-4 gap-x-3 sm:gap-x-4"
         />
-        <div
-          ref={diceTiltRef}
-          class="relative mt-3 [perspective:760px]"
-        >
+        <div ref={diceTiltRef} class="relative mt-3 [perspective:760px]">
           <div
             class={`dice-rack ${
               throwInProgress ? "invisible" : ""
-            } grid grid-cols-5 gap-[clamp(0.35rem,1.5vw,0.5rem)] text-[clamp(0.92rem,3.8vw,1rem)] min-h-[3em]`}
+            } grid min-h-[3em] grid-cols-5 gap-[clamp(0.35rem,1.5vw,0.5rem)] text-[clamp(0.92rem,3.8vw,1rem)]`}
           >
             {roll.value.map((value, i) => (
               <Die
@@ -232,7 +232,7 @@ export function Game() {
               />
             ))}
           </div>
-          <div class="mt-4 text-center text-[0.82em] font-medium text-neutral-500 min-h-6">
+          <div class="mt-4 min-h-6 text-center text-[0.82em] font-medium text-neutral-500">
             {shaking.value && (
               <span class="inline-block animate-pulse text-primary-600">
                 {shakingActive.value
@@ -253,25 +253,25 @@ export function Game() {
             )}
           </div>
         </div>
-        <div class="mt-4 min-h-[3.65rem] self-center flex flex-wrap items-center justify-center gap-2">
+        <div class="mt-4 flex min-h-[3.65rem] flex-wrap items-center justify-center gap-2 self-center">
           {canThrow && (
             <Button class={`min-w-44 ${dealIn}`} onClick={() => rollDice()}>
               {selected
                 ? t.rollXDice(5 - selected)
                 : throwNum.value > 0
-                ? t.reRollAll
-                : t.rollDice}
+                  ? t.reRollAll
+                  : t.rollDice}
             </Button>
           )}
           {rollComplete && !adviceNeeded.value && !computerPlayer.value && (
             <Button
               circle
-              intent="secondary"
-              class={`overflow-hidden !bg-primary-100 !text-primary-700 !ring-0 ${dealIn}`}
+              intent="soft"
+              class={`overflow-hidden shadow-subtle shadow-primary-950/20 ${dealIn}`}
               onClick={() => (adviceNeeded.value = true)}
               aria-label="Ask Piggy"
             >
-              <PigIcon class="!h-full !w-full translate-x-1" />
+              <PigIcon class="h-full w-full translate-x-1" />
             </Button>
           )}
           {throwNum.value > 3 && !online.value && (
@@ -292,7 +292,7 @@ export function Game() {
           <Pig
             value={digging.value}
             short={!human}
-            class="pointer-events-none absolute bottom-0 left-1/2 w-55 -translate-x-1/2 translate-y-0 text-[#8263ED] drop-emboss [--pig-fill:#FFF]"
+            class="drop-emboss pointer-events-none absolute bottom-0 left-1/2 w-55 -translate-x-1/2 translate-y-0 text-[#8263ED] [--pig-fill:#FFF]"
           />
         )}
       </div>
@@ -301,8 +301,8 @@ export function Game() {
         <PiggyHint />
       )}
       {perfect.value && (
-        <div class="fixed top-[22%] left-1/2 -translate-x-1/2 pointer-events-none">
-          <div class="relative font-logo leading-none tracking-tight text-center [paint-order:stroke] drop-emboss">
+        <div class="pointer-events-none fixed top-[22%] left-1/2 -translate-x-1/2">
+          <div class="drop-emboss relative text-center font-logo leading-none tracking-tight [paint-order:stroke]">
             <div
               key={`p${throwNum.value}:${combo.value}`}
               class="animate-fly text-5xl text-primary-600 [-webkit-text-stroke:8px_#fff]"
@@ -312,7 +312,7 @@ export function Game() {
             {roundComplete.value && combo.value >= 2 && (
               <div
                 key={`c${throwNum.value}:${combo.value}`}
-                class="animate-comboBadge absolute inset-x-0 top-0 text-4xl text-amber-500 [-webkit-text-stroke:6px_#fff]"
+                class="absolute inset-x-0 top-0 animate-comboBadge text-4xl text-amber-500 [-webkit-text-stroke:6px_#fff]"
               >
                 {t.combo(combo.value)}
               </div>

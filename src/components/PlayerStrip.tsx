@@ -1,6 +1,18 @@
 import { Check, WifiOff } from "lucide-preact";
+import { styled, tw } from "classname-variants/preact";
 import { globalRound, i18n, localPlayer, players } from "../state";
-import { avatarFor, featureColor } from "../components/avatar";
+import { PlayerAvatar } from "../components/PlayerAvatar";
+import { PlayerName } from "../components/PlayerName";
+
+// One seat chip. `gone` dims a disconnected player; `local` rings the device's
+// own seat. Branch in the variant map, not a class string concat.
+const Chip = styled("div", {
+  base: tw`flex items-center gap-2 rounded-full bg-white/90 py-1 pr-3 pl-1 shadow-subtle`,
+  variants: {
+    gone: { true: tw`opacity-40` },
+    local: { true: tw`ring-2 ring-primary-400` },
+  },
+});
 
 // Compact live standings of every seat in an online game: avatar, name, running
 // total, and a per-player status (✓ done with the current round, the round
@@ -18,22 +30,12 @@ export function PlayerStrip({ class: className = "" }: { class?: string }) {
         const gone = !p.connected.value;
         const isLocal = i === localPlayer.value;
         return (
-          <div
-            key={p.id || i}
-            class={
-              "flex items-center gap-2 rounded-full bg-white/90 py-1 pl-1 pr-3 shadow-subtle " +
-              (gone ? "opacity-40" : "") +
-              (isLocal ? " ring-2 ring-primary-400" : "")
-            }
-          >
-            <img src={avatarFor(name)} alt="" class="size-7 rounded-full" />
-            <span
-              style={{ color: featureColor(name) }}
-              class="max-w-20 truncate font-logo text-sm leading-none"
-            >
-              {name}
+          <Chip key={p.id || i} gone={gone} local={isLocal}>
+            <PlayerAvatar name={name} size="xs" />
+            <PlayerName name={name} class="max-w-20 truncate" />
+            <span class="font-digits text-sm text-ink">
+              {p.totalScore.value}
             </span>
-            <span class="font-digits text-sm text-ink">{p.totalScore.value}</span>
             <span class="grid size-5 place-items-center">
               {gone ? (
                 <WifiOff class="size-3.5 text-neutral-400" />
@@ -45,7 +47,7 @@ export function PlayerStrip({ class: className = "" }: { class?: string }) {
                 </span>
               )}
             </span>
-          </div>
+          </Chip>
         );
       })}
     </div>

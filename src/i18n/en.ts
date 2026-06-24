@@ -135,7 +135,7 @@ const i18n = {
   comboBadge: (n: number) => `Combo ×${n}`,
   piggyAskedBadge: (n: number) =>
     n === 1 ? `Piggy asked 1×` : `Piggy asked ${n}×`,
-  allTimeHigh: "All-time best! 🏆",
+  allTimeHigh: "All-time best!",
   cmpBest: "Personal best!",
   cmpFirst: "First game!",
   cmpRankYours: (rank: number, of: number) => `#${rank} of your ${of}`,

@@ -19,12 +19,12 @@ const avatarCache = new Map<string, AvatarEntry>();
 
 function extractBackgroundColor(svg: string) {
   const background = svg.match(
-    /<rect\b(?=[^>]*\bwidth="70")(?=[^>]*\bheight="70")(?=[^>]*\bfill="(#[0-9a-fA-F]{6})")[^>]*>/i
+    /<rect\b(?=[^>]*\bwidth="70")(?=[^>]*\bheight="70")(?=[^>]*\bfill="(#[0-9a-fA-F]{6})")[^>]*>/i,
   );
   if (background) return background[1];
 
   const fills = [...svg.matchAll(/fill="(#[0-9a-fA-F]{6})"/g)].map(
-    (match) => match[1]
+    (match) => match[1],
   );
   for (let i = fills.length - 1; i >= 0; i--) {
     if (fills[i].toLowerCase() !== "#000000") return fills[i];

@@ -22,9 +22,9 @@ const APP_ID = "truffle-dice";
 //   guest      — joined a fresh game, entering name / waiting for host
 //   distribute — splitting a running local game onto devices (host side)
 //   claim      — joined a game-in-progress, picking which seat to take
-export const lobbyMode = signal<null | "host" | "guest" | "distribute" | "claim">(
-  null
-);
+export const lobbyMode = signal<
+  null | "host" | "guest" | "distribute" | "claim"
+>(null);
 // A guest's room id parsed from the join link, used by the guest name form.
 export const pendingRoom = signal<string | null>(null);
 // The host's view of the roster (peerId -> name), including the host itself.
@@ -210,7 +210,7 @@ export function joinGame(name: string) {
 // Host freezes the lobby roster and kicks everyone off into the game.
 export function beginGame() {
   const roster = Object.entries(lobbyNames.value).map(([id, name]) =>
-    freshSync(id, name)
+    freshSync(id, name),
   );
   sendStart?.(roster);
   lobbyMode.value = null;
@@ -227,7 +227,11 @@ export function distributeGame() {
   distributing = true;
   claims = {};
   seatNames = players.value.map((p) => p.name.value ?? "");
-  seats.value = seatNames.map((name, index) => ({ index, name, claimed: false }));
+  seats.value = seatNames.map((name, index) => ({
+    index,
+    name,
+    claimed: false,
+  }));
   lobbyMode.value = "distribute";
   roomId.value = makeRoomId(); // opens the room
 }

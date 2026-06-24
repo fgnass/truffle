@@ -67,7 +67,7 @@ export function App() {
         new Promise<void>((r) => {
           resolve.current = r;
           setCurrent(next);
-        })
+        }),
     );
   });
 

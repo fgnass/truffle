@@ -83,12 +83,18 @@ function rankIn(total: number, pool: number[]): Ranking {
 
 // "This game is rank X of all games ever played."
 export function globalRank(total: number): Ranking {
-  return rankIn(total, allResults.value.map((r) => r.total));
+  return rankIn(
+    total,
+    allResults.value.map((r) => r.total),
+  );
 }
 
 // "This game is rank X of <name>'s games."
 export function personalRank(name: string, total: number): Ranking {
-  return rankIn(total, resultsFor(name).map((r) => r.total));
+  return rankIn(
+    total,
+    resultsFor(name).map((r) => r.total),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -122,7 +128,7 @@ function entriesFrom(records: GameRecord[]): ScoreEntry[] {
       truffle: (p.scores[TRUFFLE_INDEX] ?? 0) > 0,
       flawless: p.flawless,
       adviceCount: p.adviceCount,
-    }))
+    })),
   );
 }
 
@@ -189,7 +195,9 @@ export function playerSummary(name: string): PlayerSummary {
     if (me.rank === 1) wins++;
   }
 
-  const truffles = mine.filter((r) => (r.scores[TRUFFLE_INDEX] ?? 0) > 0).length;
+  const truffles = mine.filter(
+    (r) => (r.scores[TRUFFLE_INDEX] ?? 0) > 0,
+  ).length;
 
   return {
     name,
@@ -220,7 +228,9 @@ export type GameComparison = {
 export function compareToHistory(name: string, total: number): GameComparison {
   const totals = resultsFor(name).map((r) => r.total);
   const { rank, of } = rankIn(total, totals);
-  const avg = totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : total;
+  const avg = totals.length
+    ? totals.reduce((a, b) => a + b, 0) / totals.length
+    : total;
   return {
     rank,
     of,
@@ -247,7 +257,11 @@ const chance = (p: number) => Math.random() < p;
 
 // One plausible scorecard. `strong` biases towards higher categories (used for
 // Piggy, who plays optimally).
-function seededResult(name: string, human: boolean, strong = false): PlayerResult {
+function seededResult(
+  name: string,
+  human: boolean,
+  strong = false,
+): PlayerResult {
   const hit = (p: number) => (strong ? Math.min(1, p + 0.2) : p);
   const scores: (number | null)[] = [];
   for (let face = 1; face <= 6; face++) {

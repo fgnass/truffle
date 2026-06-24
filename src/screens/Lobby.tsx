@@ -23,14 +23,15 @@ import { Pig } from "../components/Pig";
 import { TruffleLogo } from "../components/TruffleLogo";
 import { QrCode } from "../components/QrCode";
 import { Tile, TileBadge } from "../components/Tile";
-import { stitchedCard } from "../components/card";
-import { avatarFor, featureColor } from "../components/avatar";
+import { StitchedCard } from "../components/card";
+import { PlayerAvatar } from "../components/PlayerAvatar";
+import { PlayerName } from "../components/PlayerName";
 
 function Header() {
   return (
     <div class="flex flex-col items-center">
-      <Pig class="w-40 h-auto text-ink drop-emboss translate-x-2" />
-      <TruffleLogo class="relative -mt-6 w-44 h-auto drop-emboss" />
+      <Pig class="drop-emboss h-auto w-40 translate-x-2 text-ink" />
+      <TruffleLogo class="drop-emboss relative -mt-6 h-auto w-44" />
     </div>
   );
 }
@@ -38,9 +39,9 @@ function Header() {
 // Card chrome shared by the host and guest panels.
 function Card({ children }: { children: ComponentChildren }) {
   return (
-    <div class={`w-full max-w-sm p-6 text-ink flex flex-col items-center gap-5 ${stitchedCard}`}>
+    <StitchedCard class="flex w-full max-w-sm flex-col items-center gap-5 p-6">
       {children}
-    </div>
+    </StitchedCard>
   );
 }
 
@@ -65,24 +66,16 @@ function HostLobby() {
         {t.scanToJoin}
       </p>
       <QrCode value={joinLink()} class="size-48" />
-      <button
-        onClick={copy}
-        class="flex items-center gap-2 rounded-full bg-primary-100 px-4 py-2 text-sm font-medium text-primary-700 transition active:scale-95"
-      >
+      <Button intent="soft" onClick={copy}>
         {copied.value ? <Check class="size-4" /> : <Copy class="size-4" />}
         {copied.value ? t.linkCopied : t.copyLink}
-      </button>
+      </Button>
 
       <div class="flex w-full flex-wrap justify-center gap-3 border-t border-primary-200 pt-4">
         {names.value.map((name) => (
           <div key={name} class="flex flex-col items-center gap-1">
-            <img src={avatarFor(name)} alt="" class="size-11 rounded-full" />
-            <span
-              style={{ color: featureColor(name) }}
-              class="max-w-16 truncate font-logo text-sm leading-none"
-            >
-              {name}
-            </span>
+            <PlayerAvatar name={name} size="md" />
+            <PlayerName name={name} class="max-w-16 truncate" />
           </div>
         ))}
       </div>
@@ -131,7 +124,7 @@ function GuestLobby() {
       <p class="text-center text-lg font-semibold text-primary-900">
         {t.joinAs}
       </p>
-      <div class="flex w-full items-baseline gap-2 border-b border-neutral-300 pb-1 px-1">
+      <div class="flex w-full items-baseline gap-2 border-b border-neutral-300 px-1 pb-1">
         <span class="text-base font-medium text-neutral-500">Name:</span>
         <input
           ref={inputRef}
@@ -143,7 +136,7 @@ function GuestLobby() {
           onKeyDown={(e) => e.key === "Enter" && submit()}
           autoComplete="off"
           autoFocus
-          class="font-digits min-w-0 flex-1 bg-transparent text-2xl leading-none text-ink outline-hidden"
+          class="min-w-0 flex-1 bg-transparent font-digits text-2xl leading-none text-ink outline-hidden"
         />
       </div>
       <Button class="text-lg" disabled={!name.value.trim()} onClick={submit}>
@@ -175,10 +168,10 @@ function DistributeLobby() {
           const state = mine
             ? "mine"
             : s.claimed
-            ? "taken"
-            : takeable
-            ? "open"
-            : "locked";
+              ? "taken"
+              : takeable
+                ? "open"
+                : "locked";
           return (
             <Tile
               key={s.index}
@@ -188,20 +181,15 @@ function DistributeLobby() {
               class="gap-1 px-2 py-2"
             >
               <span class="relative">
-                <img src={avatarFor(s.name)} alt="" class="size-11 rounded-full" />
+                <PlayerAvatar name={s.name} size="md" />
                 {s.claimed && (
                   <TileBadge tone="claim">
                     <Check class="size-3" strokeWidth={3} />
                   </TileBadge>
                 )}
               </span>
-              <span
-                style={{ color: featureColor(s.name) }}
-                class="max-w-16 truncate font-logo text-sm leading-none"
-              >
-                {s.name}
-              </span>
-              <span class="text-[0.7rem] leading-none text-neutral-500">
+              <PlayerName name={s.name} class="max-w-16 truncate" />
+              <span class="text-caption leading-none text-neutral-500">
                 {mine ? t.seatYou : s.claimed ? t.seatReady : t.seatWaiting}
               </span>
             </Tile>
@@ -261,13 +249,8 @@ function ClaimLobby() {
             onClick={() => claimSeat(s.index)}
             class="gap-1 px-2 py-2"
           >
-            <img src={avatarFor(s.name)} alt="" class="size-11 rounded-full" />
-            <span
-              style={{ color: featureColor(s.name) }}
-              class="max-w-16 truncate font-logo text-sm leading-none"
-            >
-              {s.name}
-            </span>
+            <PlayerAvatar name={s.name} size="md" />
+            <PlayerName name={s.name} class="max-w-16 truncate" />
           </Tile>
         ))}
       </div>
@@ -289,7 +272,7 @@ export function Lobby() {
       <GuestLobby />
     );
   return (
-    <div class="relative flex-1 flex flex-col items-center justify-center gap-6 overflow-y-auto px-5 py-8 text-white">
+    <div class="relative flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-5 py-8 text-white">
       {/* Always-visible exit, fixed to the viewport so it can't scroll out of
           reach behind a tall lobby card (matches the close button elsewhere). */}
       <IconButton
@@ -297,7 +280,7 @@ export function Lobby() {
         raised
         onClick={cancelLobby}
         aria-label={t.back}
-        class="fixed right-4 top-4 z-20"
+        class="fixed top-4 right-4 z-20"
       >
         <X class="size-5" />
       </IconButton>

@@ -27,6 +27,16 @@ const config: Config = {
         digits: ["knewave"],
         logo: ["knewave"],
       },
+      fontSize: {
+        // The shared "dialog body" size — the running text inside the intro,
+        // settings, Piggy hint and install prompt. One token so the reading
+        // size for all dialog copy is tuned in a single place. Size only;
+        // line-height stays with each call site's `leading-*`.
+        body: "0.95rem",
+        // Small caption / annotation text (seat status, row hints) that sits a
+        // notch below `text-xs`.
+        caption: "0.7rem",
+      },
       colors: {
         primary,
         piggy,

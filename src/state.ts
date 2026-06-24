@@ -38,7 +38,9 @@ export const settingsOpen = signal(false);
 // `introOpen` drives the carousel modal and starts open the very first time so
 // new players meet Piggy before anything else. It can be replayed from the
 // settings sheet. Skipping or finishing both mark it seen.
-export const introOpen = signal(localStorage.getItem("truffle.seenIntro") !== "1");
+export const introOpen = signal(
+  localStorage.getItem("truffle.seenIntro") !== "1",
+);
 export function openIntro() {
   settingsOpen.value = false;
   introOpen.value = true;
@@ -53,14 +55,18 @@ export const computerPlayer = signal(false);
 // When enabled, a suboptimal category entry immediately offers Piggy's better
 // move ("use it" / "keep mine") instead of first asking whether to reveal it.
 // Persisted across sessions.
-export const piggyTips = signal(localStorage.getItem("truffle.piggyTips") === "1");
+export const piggyTips = signal(
+  localStorage.getItem("truffle.piggyTips") === "1",
+);
 effect(() => {
   localStorage.setItem("truffle.piggyTips", piggyTips.value ? "1" : "0");
 });
 
 // Master switch for the "that wasn't Piggy's best move" coaching hint. Default
 // on; when off, the hint/modal never appears (combo/flawless tracking is kept).
-export const piggyHints = signal(localStorage.getItem("truffle.piggyHints") !== "0");
+export const piggyHints = signal(
+  localStorage.getItem("truffle.piggyHints") !== "0",
+);
 effect(() => {
   localStorage.setItem("truffle.piggyHints", piggyHints.value ? "1" : "0");
 });
@@ -113,19 +119,19 @@ export type PlayerSync = {
 };
 
 const preferredLang = Object.keys(translations).find((l) =>
-  navigator.language.toLowerCase().includes(l)
+  navigator.language.toLowerCase().includes(l),
 );
 
 export const lang = signal(preferredLang ?? "en");
 
 export const i18n = computed(
-  () => translations[lang.value as keyof typeof translations]
+  () => translations[lang.value as keyof typeof translations],
 );
 
 export const gameFinished = computed(() =>
   // Online, a dropped peer's board may stay unfinished — don't let it wedge the
   // game open. Offline every player is "connected", so this is the same check.
-  players.value.every((p) => !p.connected.value || !!p.scoreboardFull.value)
+  players.value.every((p) => !p.connected.value || !!p.scoreboardFull.value),
 );
 
 export const finalRanking = computed(() => {
@@ -212,7 +218,7 @@ export class PlayerState {
   });
 
   upperSectionFull = computed(() =>
-    this.scores.value.slice(0, 6).every((s) => s !== null)
+    this.scores.value.slice(0, 6).every((s) => s !== null),
   );
 
   bonus = computed(() =>
@@ -220,7 +226,7 @@ export class PlayerState {
       ? (this.upperScore.value ?? 0) >= 63
         ? 35
         : 0
-      : null
+      : null,
   );
 
   totalScore = computed(() => {
@@ -271,7 +277,7 @@ export class PlayerState {
           () => {
             digging.value = 0;
           },
-          this.human ? 5000 : 1200
+          this.human ? 5000 : 1200,
         );
       }
     });
@@ -293,7 +299,6 @@ export class PlayerState {
         assignScore(this.advice.value);
       }
     });
-
   }
 
   reset() {
@@ -435,7 +440,7 @@ export function startOnlineGame(roster: PlayerSync[], localId: string) {
   });
   const idx = Math.max(
     0,
-    roster.findIndex((r) => r.id === localId)
+    roster.findIndex((r) => r.id === localId),
   );
   batch(() => {
     showStats.value = false;
@@ -530,12 +535,12 @@ export function replayWithParty() {
 }
 
 export const currentPlayerState = computed(
-  () => players.value[currentPlayer.value]
+  () => players.value[currentPlayer.value],
 );
 
 export const round = computed(
   () =>
-    currentPlayerState.value.scores.value.filter((s) => s !== null).length + 1
+    currentPlayerState.value.scores.value.filter((s) => s !== null).length + 1,
 );
 
 // Completed rounds = filled categories.
@@ -543,7 +548,9 @@ function filledCount(p: PlayerState) {
   return p.scores.value.filter((s) => s !== null).length;
 }
 
-export const localPlayerState = computed(() => players.value[localPlayer.value]);
+export const localPlayerState = computed(
+  () => players.value[localPlayer.value],
+);
 
 // Online round barrier: the game advances in lockstep. `globalRound` is the
 // number of rounds every still-connected player has finished; a player who has
@@ -561,21 +568,21 @@ export const waiting = computed(
   () =>
     online.value &&
     !gameFinished.value &&
-    filledCount(localPlayerState.value) > globalRound.value
+    filledCount(localPlayerState.value) > globalRound.value,
 );
 
 // Names of the players still a round behind, for the waiting overlay.
 export const waitingFor = computed(() =>
   players.value
     .filter((p) => p.connected.value && filledCount(p) === globalRound.value)
-    .map((p) => p.name.value ?? "")
+    .map((p) => p.name.value ?? ""),
 );
 
 export function select(index: number) {
   const { selection, human } = currentPlayerState.value;
   if (human) {
     selection.value = selection.value.map((selected, i) =>
-      i === index ? !selected : selected
+      i === index ? !selected : selected,
     );
   }
 }
@@ -749,8 +756,18 @@ export function nextPlayer() {
 }
 
 export function undo() {
-  const { scores, roll, throwNum, selection, prevState, perfect, combo, roundPerfect, piggyPick, piggyKeep } =
-    currentPlayerState.value;
+  const {
+    scores,
+    roll,
+    throwNum,
+    selection,
+    prevState,
+    perfect,
+    combo,
+    roundPerfect,
+    piggyPick,
+    piggyKeep,
+  } = currentPlayerState.value;
   const prev = prevState.value;
   if (prev) {
     const redoState = { ...snapshot(), redo: !prev.redo };
@@ -852,7 +869,7 @@ effect(() => {
 if (import.meta.env.DEV) {
   (window as unknown as Record<string, unknown>).finishGame = (
     n = 3,
-    withPiggy = false
+    withPiggy = false,
   ) => {
     const names = ["Felix", "Anna", "Ben", "Clara"].slice(0, Math.max(1, n));
     const roster: PlayerStateWithHistory[] = names.map((name, idx) => {
@@ -860,9 +877,17 @@ if (import.meta.env.DEV) {
       p.name.value = name;
       // Vary upper sections so some clear the 63 bonus and some don't.
       const upper = [1, 2, 3, 4, 5, 6].map((face) =>
-        idx % 2 === 0 ? face * (idx + 2) : face
+        idx % 2 === 0 ? face * (idx + 2) : face,
       );
-      const lower = [22, 0, 25, 30, idx === 0 ? 40 : 0, idx === 0 ? 50 : 0, 30 - idx * 6];
+      const lower = [
+        22,
+        0,
+        25,
+        30,
+        idx === 0 ? 40 : 0,
+        idx === 0 ? 50 : 0,
+        30 - idx * 6,
+      ];
       p.scores.value = [...upper, ...lower];
       p.adviceCount.value = idx;
       p.longestCombo.value = idx === 0 ? 4 : 0;

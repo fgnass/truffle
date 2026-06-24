@@ -4,17 +4,14 @@ import { computerPlayer, i18n, rosterDraft, startGame } from "../state";
 import { hostGame } from "../net";
 import { knownPlayers } from "../stats";
 import { Button } from "../components/Button";
-import { PigAvatar } from "../components/PigAvatar";
+import { IconButton } from "../components/IconButton";
+import { PlayerAvatar } from "../components/PlayerAvatar";
+import { PlayerName } from "../components/PlayerName";
 import { StartLogo } from "../components/StartLogo";
 import { SettingsButton } from "../components/SettingsButton";
 import { Tile, TileBadge } from "../components/Tile";
-import { stitchedCard } from "../components/card";
-import {
-  avatarFor,
-  colorFor,
-  featureColor,
-  PIGGY_COLOR,
-} from "../components/avatar";
+import { StitchedCard } from "../components/card";
+import { colorFor, PIGGY_COLOR } from "../components/avatar";
 import { Check, Plus, Smartphone } from "lucide-preact";
 
 // Layout shared by every roster tile (the picker sizes them the same; selection
@@ -62,7 +59,8 @@ export function PlayerNames() {
   // Host an online game under the host's own name: the typed name wins,
   // otherwise a single picked player, otherwise nudge the user to type one.
   const startOnline = () => {
-    const host = trimmed || (selected.value.length === 1 ? selected.value[0] : "");
+    const host =
+      trimmed || (selected.value.length === 1 ? selected.value[0] : "");
     if (host) hostGame(host);
     else inputRef.current?.focus();
   };
@@ -78,136 +76,131 @@ export function PlayerNames() {
   };
 
   return (
-    <div class="relative flex-1 flex flex-col overflow-hidden px-5 py-6 text-white">
-      <SettingsButton class="absolute right-4 top-4 z-10" />
+    <div class="relative flex flex-1 flex-col overflow-hidden px-5 py-6 text-white">
+      <SettingsButton class="absolute top-4 right-4 z-10" />
 
-      <div class="relative min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div class="relative min-h-0 flex-1 [scrollbar-width:none] overflow-y-auto [&::-webkit-scrollbar]:hidden">
         <div class="flex min-h-full flex-col items-center justify-center gap-5 py-2">
           {/* Piggy stands behind the logo, both white with the same dark outline */}
           <StartLogo />
 
-          <div class={`w-full max-w-sm p-5 text-ink flex flex-col gap-4 ${stitchedCard}`}>
-        {/* search + add — mirrors the scorecard field: UI-font label, handwritten
+          <StitchedCard class="flex w-full max-w-sm flex-col gap-4 p-5">
+            {/* search + add — mirrors the scorecard field: UI-font label, handwritten
             value (in the dark logo purple here), solid underline */}
-        <div class="flex items-center gap-2 px-1">
-          <div class="flex min-w-0 flex-1 items-baseline gap-2 border-b border-neutral-300 pb-1">
-            <span class="text-base font-medium text-neutral-500">Name:</span>
-            <input
-              ref={inputRef}
-              value={query.value}
-              onInput={(e) => {
-                const v = (e.target as HTMLInputElement).value;
-                query.value = v.charAt(0).toUpperCase() + v.slice(1);
-              }}
-              onKeyDown={onKeyDown}
-              autoComplete="off"
-              class="font-digits min-w-0 flex-1 bg-transparent text-2xl leading-none text-ink outline-hidden"
-            />
-          </div>
-          <button
-            onClick={addNew}
-            disabled={!isNewName}
-            aria-label={t.newPlayer}
-            class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-700 text-white transition active:scale-90 disabled:opacity-30"
-          >
-            <Plus class="size-5" />
-          </button>
-        </div>
+            <div class="flex items-center gap-2 px-1">
+              <div class="flex min-w-0 flex-1 items-baseline gap-2 border-b border-neutral-300 pb-1">
+                <span class="text-base font-medium text-neutral-500">
+                  Name:
+                </span>
+                <input
+                  ref={inputRef}
+                  value={query.value}
+                  onInput={(e) => {
+                    const v = (e.target as HTMLInputElement).value;
+                    query.value = v.charAt(0).toUpperCase() + v.slice(1);
+                  }}
+                  onKeyDown={onKeyDown}
+                  autoComplete="off"
+                  class="min-w-0 flex-1 bg-transparent font-digits text-2xl leading-none text-ink outline-hidden"
+                />
+              </div>
+              <IconButton
+                tone="solid"
+                onClick={addNew}
+                disabled={!isNewName}
+                aria-label={t.newPlayer}
+                class="shrink-0"
+              >
+                <Plus class="size-5" />
+              </IconButton>
+            </div>
 
-        {/* roster grid */}
-        <div class="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto -m-2 p-2">
-          {/* Piggy — the computer opponent, always available as a roster member */}
-          <Tile
-            state={computerPlayer.value ? "on" : "off"}
-            onClick={() => (computerPlayer.value = !computerPlayer.value)}
-            style={{
-              backgroundColor: `color-mix(in srgb, ${PIGGY_COLOR} 18%, white)`,
-            }}
-            class={TILE_LAYOUT}
-          >
-            <PigAvatar
-              class={`size-12 rounded-full ${
-                computerPlayer.value ? "avatar-pop" : ""
-              }`}
-            />
-            <span
-              style={{ color: `color-mix(in srgb, ${PIGGY_COLOR} 50%, black)` }}
-              class="font-logo text-base leading-none"
-            >
-              Piggy
-            </span>
-            {computerPlayer.value && (
-              <TileBadge tone="select">
-                <Check class="size-3.5" strokeWidth={3} />
-              </TileBadge>
-            )}
-          </Tile>
-
-          {tiles.value.map((name) => {
-            const on = selected.value.includes(name);
-            return (
+            {/* roster grid */}
+            <div class="-m-2 grid max-h-64 grid-cols-3 gap-3 overflow-y-auto p-2">
+              {/* Piggy — the computer opponent, always available as a roster member */}
               <Tile
-                key={name}
-                state={on ? "on" : "off"}
-                onClick={() => toggle(name)}
+                state={computerPlayer.value ? "on" : "off"}
+                onClick={() => (computerPlayer.value = !computerPlayer.value)}
                 style={{
-                  color: colorFor(name),
-                  backgroundColor: `color-mix(in srgb, ${colorFor(name)} 18%, white)`,
+                  backgroundColor: `color-mix(in srgb, ${PIGGY_COLOR} 18%, white)`,
                 }}
                 class={TILE_LAYOUT}
               >
-                <img
-                  src={avatarFor(name)}
-                  alt=""
-                  class={`size-12 rounded-full ${on ? "avatar-pop" : ""}`}
+                <PlayerAvatar
+                  name="Piggy"
+                  piggy
+                  size="lg"
+                  class={computerPlayer.value ? "avatar-pop" : ""}
                 />
-                <span
-                  style={{ color: featureColor(name) }}
-                  class="max-w-full truncate font-logo text-base leading-none"
-                >
-                  {name}
-                </span>
-                {on && (
+                <PlayerName name="Piggy" piggy size="md" />
+                {computerPlayer.value && (
                   <TileBadge tone="select">
                     <Check class="size-3.5" strokeWidth={3} />
                   </TileBadge>
                 )}
               </Tile>
-            );
-          })}
 
-          {/* new player */}
-          <button
-            onClick={() =>
-              isNewName ? addNew() : inputRef.current?.focus()
-            }
-            class="flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-primary-300 px-1 py-3 text-primary-700 transition active:scale-95"
-          >
-            <Plus class="size-7" />
-            <span class="max-w-full truncate text-sm font-semibold">
-              {isNewName ? trimmed : t.newPlayer}
-            </span>
-          </button>
-        </div>
+              {tiles.value.map((name) => {
+                const on = selected.value.includes(name);
+                return (
+                  <Tile
+                    key={name}
+                    state={on ? "on" : "off"}
+                    onClick={() => toggle(name)}
+                    style={{
+                      color: colorFor(name),
+                      backgroundColor: `color-mix(in srgb, ${colorFor(name)} 18%, white)`,
+                    }}
+                    class={TILE_LAYOUT}
+                  >
+                    <PlayerAvatar
+                      name={name}
+                      size="lg"
+                      class={on ? "avatar-pop" : ""}
+                    />
+                    <PlayerName name={name} size="md" class="max-w-full truncate" />
+                    {on && (
+                      <TileBadge tone="select">
+                        <Check class="size-3.5" strokeWidth={3} />
+                      </TileBadge>
+                    )}
+                  </Tile>
+                );
+              })}
 
-        <div class="flex items-center justify-between gap-2">
-          <Button
-            intent="ghost"
-            onClick={startOnline}
-            class="gap-1.5 px-3 py-2 text-sm font-semibold text-primary-700"
-          >
-            <Smartphone class="size-4" />
-            {t.playOnline}
-          </Button>
-          <Button
-            class="text-lg"
-            disabled={selected.value.length < 1}
-            onClick={() => startGame(selected.value)}
-          >
-            {t.letsGo}
-          </Button>
-          </div>
-          </div>
+              {/* new player */}
+              <Tile
+                state="add"
+                onClick={() =>
+                  isNewName ? addNew() : inputRef.current?.focus()
+                }
+                class={TILE_LAYOUT}
+              >
+                <Plus class="size-7" />
+                <span class="max-w-full truncate text-sm font-semibold">
+                  {isNewName ? trimmed : t.newPlayer}
+                </span>
+              </Tile>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <Button
+                intent="ghost"
+                onClick={startOnline}
+                class="gap-1.5 px-3 py-2 text-sm font-semibold text-primary-700"
+              >
+                <Smartphone class="size-4" />
+                {t.playOnline}
+              </Button>
+              <Button
+                class="text-lg"
+                disabled={selected.value.length < 1}
+                onClick={() => startGame(selected.value)}
+              >
+                {t.letsGo}
+              </Button>
+            </div>
+          </StitchedCard>
         </div>
       </div>
     </div>

@@ -34,11 +34,11 @@ export function ScoreSheet({
 
   return (
     <div class={`grid grid-cols-2 ${className}`}>
-      <div class="grid row-span-7 grid-rows-subgrid">
+      <div class="row-span-7 grid grid-rows-subgrid">
         {scores.value.slice(0, 6).map((_, i) => box(i))}
         <ScoreBox category={t.bonus} hint={t.bonusHint} score={bonus.value} />
       </div>
-      <div class="grid row-span-7 grid-rows-subgrid">
+      <div class="row-span-7 grid grid-rows-subgrid">
         {scores.value.slice(6).map((_, i) => box(i + 6))}
       </div>
     </div>

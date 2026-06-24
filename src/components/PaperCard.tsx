@@ -12,9 +12,9 @@ export function PaperCard({
   children: ComponentChildren;
 }) {
   return (
-    <div class="flex-1 flex flex-col gap-6 text-sm w-[500px] max-w-full mx-auto">
-      <div class="bg-white shadow-paper p-6 flex flex-col gap-6 relative overflow-hidden">
-        <h1 class="font-bold text-xl flex items-center gap-1 leading-none min-h-6">
+    <div class="mx-auto flex w-[500px] max-w-full flex-1 flex-col gap-6 text-sm">
+      <div class="relative flex flex-col gap-6 overflow-hidden bg-white p-6 shadow-paper">
+        <h1 class="flex min-h-6 items-center gap-1 text-xl leading-none font-bold">
           {title}
         </h1>
         {children}

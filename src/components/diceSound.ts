@@ -16,8 +16,7 @@ let noiseBuffer: AudioBuffer | null = null;
 
 function audioCtx() {
   if (!ctx) {
-    const Ctor =
-      window.AudioContext || (window as any).webkitAudioContext;
+    const Ctor = window.AudioContext || (window as any).webkitAudioContext;
     ctx = new Ctor();
   }
   // The context starts suspended until a user gesture; resuming is a no-op once
@@ -136,7 +135,10 @@ function play(voice: Voice, velocity: number) {
 
   // Map impact speed onto loudness; harder hits are louder (and, via the noise
   // transient, a touch sharper).
-  const t = Math.min(1, (velocity - voice.minVel) / (voice.maxVel - voice.minVel));
+  const t = Math.min(
+    1,
+    (velocity - voice.minVel) / (voice.maxVel - voice.minVel),
+  );
   // Perceived loudness rises slower than amplitude — square keeps soft taps soft.
   const amp = 0.18 + 0.82 * t * t;
 

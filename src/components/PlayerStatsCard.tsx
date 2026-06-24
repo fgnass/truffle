@@ -2,8 +2,8 @@ import { ComponentChildren } from "preact";
 import { Medal } from "lucide-preact";
 import { i18n } from "../state";
 import { playerSummary } from "../stats";
-import { avatarFor, featureColor, PIGGY_FEATURE_COLOR } from "./avatar";
-import { PigAvatar } from "./PigAvatar";
+import { PlayerAvatar } from "./PlayerAvatar";
+import { PlayerName } from "./PlayerName";
 
 // One player's all-time summary: avatar, name, headline best score and a small
 // stats table. Shared by the Stats screen (wrapped in a stitched card) and the
@@ -21,7 +21,9 @@ function StatRow({
 }) {
   return (
     <div class="flex items-center justify-between border-t border-primary-200/70 py-2">
-      <dt class="flex items-center gap-1.5 text-sm text-primary-600">{label}</dt>
+      <dt class="flex items-center gap-1.5 text-sm text-primary-600">
+        {label}
+      </dt>
       <dd class="leading-none">{value}</dd>
     </div>
   );
@@ -58,18 +60,9 @@ export function PlayerStatsCard({
   const s = playerSummary(name);
   return (
     <div class={`flex flex-col items-center gap-4 ${cls}`}>
-      {s.human ? (
-        <img src={avatarFor(name)} alt="" class="size-16 rounded-full" />
-      ) : (
-        <PigAvatar class="size-16 rounded-full" />
-      )}
+      <PlayerAvatar name={name} piggy={!s.human} size="xl" />
       <div class="text-center">
-        <div
-          class="font-logo text-2xl leading-none"
-          style={{ color: s.human ? featureColor(name) : PIGGY_FEATURE_COLOR }}
-        >
-          {name}
-        </div>
+        <PlayerName name={name} piggy={!s.human} size="lg" />
         <div class="mt-1 text-xs text-primary-400">{t.gamesCount(s.games)}</div>
       </div>
 
@@ -78,7 +71,7 @@ export function PlayerStatsCard({
       ) : (
         <>
           <div class="flex flex-col items-center">
-            <span class="text-xs font-semibold uppercase tracking-wide text-primary-400">
+            <span class="text-xs font-semibold tracking-wide text-primary-400 uppercase">
               {t.statBest}
             </span>
             <span class="font-digits text-5xl leading-none text-ink">

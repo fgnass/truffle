@@ -1,15 +1,31 @@
 import { Signal, useSignal } from "@preact/signals";
 import { ComponentChildren } from "preact";
+import { styled, tw } from "classname-variants/preact";
 import { useEffect } from "preact/hooks";
 import { i18n, openStats, players, type PlayerState } from "../state";
 import { compareToHistory, highScores, rankPlayers } from "../stats";
 import { makeClock, reduceMotion } from "../ceremonyClock";
+import { Trophy } from "lucide-preact";
 import { Badge } from "./Badge";
 import { FlipCard } from "./FlipCard";
-import { Medal } from "./Medal";
+import { Medal, COIN_SHADOW } from "./Medal";
 import { RankBadge } from "./RankBadge";
-import { avatarFor, featureColor, PIGGY_FEATURE_COLOR } from "./avatar";
-import { PigAvatar } from "./PigAvatar";
+import { PlayerAvatar } from "./PlayerAvatar";
+
+// A results row. `active` tints the player the tally is currently on, `pending`
+// dims those not yet reached, and `tappable` makes a landed row open that
+// player's stats. Branch in the variant map, not stacked ternaries.
+const Row = styled("div", {
+  base: tw`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-[opacity,background-color] duration-300`,
+  variants: {
+    active: { true: tw`bg-primary-100` },
+    pending: { true: tw`opacity-50`, false: tw`opacity-100` },
+    tappable: {
+      true: tw`cursor-pointer hover:bg-primary-100 active:scale-[0.99]`,
+    },
+  },
+  defaultVariants: { pending: false },
+});
 
 // ---------------------------------------------------------------------------
 // The end-of-game ceremony. Instead of dropping the final leaderboard in all at
@@ -125,7 +141,7 @@ export function ResultCeremony({
           displayTotal,
           p.upperScore.value ?? 0,
           (p.upperScore.value ?? 0) + 35,
-          360
+          360,
         );
       } else {
         await clock.delay(420);
@@ -221,31 +237,31 @@ export function ResultCeremony({
     const num = cellTotal(0);
     return (
       <div class="flex flex-col items-center gap-3 py-10 text-white">
-        <div class="font-digits text-3xl leading-none text-white drop-emboss">
+        <div class="drop-emboss font-digits text-3xl leading-none text-white">
           {name}
         </div>
         <div class="h-5 text-sm font-medium text-white/80">
           {chapter.value === "upper"
             ? t.tallyUpper
             : chapter.value === "bonus"
-            ? p.bonus.value
-              ? `${t.tallyBonus} +35`
-              : t.tallyNoBonus
-            : chapter.value === "lower"
-            ? t.tallyLower
-            : ""}
+              ? p.bonus.value
+                ? `${t.tallyBonus} +35`
+                : t.tallyNoBonus
+              : chapter.value === "lower"
+                ? t.tallyLower
+                : ""}
         </div>
-        <div class="font-digits text-7xl leading-none text-white drop-emboss">
+        <div class="drop-emboss font-digits text-7xl leading-none text-white">
           {num ?? "–"}
         </div>
         {soloHeadline.value && (
-          <div class="animate-fadeIn mt-2 flex flex-col items-center gap-1 text-center">
+          <div class="mt-2 flex animate-fadeIn flex-col items-center gap-1 text-center">
             <span class="text-lg font-medium text-white">
               {cmp.isFirst
                 ? t.cmpFirst
                 : cmp.isBest
-                ? t.cmpBest
-                : t.cmpRankYours(cmp.rank, cmp.of)}
+                  ? t.cmpBest
+                  : t.cmpRankYours(cmp.rank, cmp.of)}
             </span>
             <span class="text-sm text-white/70">{t.viewStats}…</span>
           </div>
@@ -260,7 +276,12 @@ export function ResultCeremony({
   // finished game is already in the log, so highScores()/compareToHistory()
   // include it. We only crow when *this* game is the player's personal best, so
   // a returning player whose older score still tops the board isn't re-credited.
-  const milestoneFor = (p: PlayerState) => {
+  // Every milestone shares one badge style (see the render below) — only the
+  // text and the optional trophy differ. Kept off gold so it doesn't compete
+  // with the gold/silver/bronze coins.
+  const milestoneFor = (
+    p: PlayerState,
+  ): { text: string; icon?: typeof Trophy } | null => {
     if (!p.human) return null;
     const name = p.name.value ?? "";
     const tot = total(p);
@@ -269,17 +290,20 @@ export function ResultCeremony({
     if (!newBest) return null;
     const board = highScores(undefined, 10);
     const idx = board.findIndex((e) => e.name === name && e.score === tot);
-    if (idx === 0) return { text: t.allTimeHigh, tone: "gold" as const };
-    if (idx > 0)
-      return { text: `${t.highScoreHit} #${idx + 1}`, tone: "gold" as const };
-    if (cmp.isBest) return { text: t.cmpBest, tone: "best" as const };
-    return { text: t.cmpFirst, tone: "first" as const };
+    if (idx === 0) return { text: t.allTimeHigh, icon: Trophy };
+    if (idx > 0) return { text: `${t.highScoreHit} #${idx + 1}` };
+    if (cmp.isBest) return { text: t.cmpBest };
+    return { text: t.cmpFirst };
   };
 
   // The rank disc that rides the back of each row's flip card — the same coin as
   // the high-score list, except last place carries the poo here.
   const disc = (i: number): ComponentChildren =>
-    isLast(i) ? <Medal kind="poo" animate={false} /> : <RankBadge rank={ranks[i]} />;
+    isLast(i) ? (
+      <Medal kind="poo" animate={false} />
+    ) : (
+      <RankBadge rank={ranks[i]} />
+    );
 
   const tappable = finished.value && !!onSelect;
 
@@ -296,9 +320,12 @@ export function ResultCeremony({
 
           // Faces flip from avatar to rank disc only at the reveal beat, rippling
           // top-to-bottom (staggered by the row's settled position) so ranks stay
-          // hidden until everyone has landed.
+          // hidden until everyone has landed. The per-row step is a good fraction
+          // of the 600ms flip so the cascade reads as a distinct ripple rather
+          // than all the coins turning at once.
           const flipped = medalsShown.value || finished.value;
           const mile = isLocked ? milestoneFor(p) : null;
+          const MileIcon = mile?.icon;
 
           // Not-yet-tallied rows recede; the running result stays solid.
           const isPending = !isLocked && !isActive;
@@ -307,41 +334,37 @@ export function ResultCeremony({
               ? chapter.value === "upper"
                 ? t.tallyUpper
                 : chapter.value === "bonus"
-                ? p.bonus.value
-                  ? t.tallyBonus
-                  : t.tallyNoBonus
-                : t.tallyLower
+                  ? p.bonus.value
+                    ? t.tallyBonus
+                    : t.tallyNoBonus
+                  : t.tallyLower
               : "";
 
           return (
-            <div
+            <Row
               key={i}
+              active={isActive}
+              pending={isPending}
+              tappable={tappable}
               style={{ viewTransitionName: `cr-${i}` }}
               onClick={tappable ? () => onSelect!(name) : undefined}
-              class={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-[opacity,background-color] duration-300 ${
-                isActive ? "bg-primary-100" : ""
-              } ${isPending ? "opacity-50" : "opacity-100"} ${
-                tappable ? "cursor-pointer hover:bg-primary-100 active:scale-[0.99]" : ""
-              }`}
             >
               <FlipCard
-                class="size-9 shrink-0"
+                class="size-11 shrink-0"
                 flipped={flipped}
-                delay={flipped ? `${pos * 90}ms` : "0ms"}
+                delay={flipped ? `${pos * 170}ms` : "0ms"}
                 front={
-                  p.human ? (
-                    <img src={avatarFor(name)} alt="" class="size-9 rounded-full" />
-                  ) : (
-                    <PigAvatar class="size-9 rounded-full" />
-                  )
+                  <PlayerAvatar
+                    name={name}
+                    piggy={!p.human}
+                    size="sm"
+                    style={{ boxShadow: COIN_SHADOW }}
+                  />
                 }
                 back={disc(i)}
               />
               <div class="min-w-0 flex-1">
-                <div
-                  class="truncate text-lg font-medium leading-tight"
-                  style={{ color: p.human ? featureColor(name) : PIGGY_FEATURE_COLOR }}
-                >
+                <div class="truncate text-lg leading-tight font-medium text-ink">
                   {name}
                 </div>
                 {/* Reserve the sub-line so rows keep a constant height while the
@@ -350,11 +373,12 @@ export function ResultCeremony({
                     as the "tap for stats" affordance, filling the gap. */}
                 <div class="flex h-5 items-center leading-tight">
                   {mile ? (
-                    <Badge tone={mile.tone} class="animate-fadeIn">
+                    <Badge tone="best" class="animate-fadeIn gap-1">
+                      {MileIcon && <MileIcon class="size-3" />}
                       {mile.text}
                     </Badge>
                   ) : tappable ? (
-                    <span class="animate-fadeIn text-[0.7rem] font-medium text-primary-400">
+                    <span class="animate-fadeIn text-caption font-medium text-primary-400">
                       {t.rowStatsHint}
                     </span>
                   ) : (
@@ -365,24 +389,32 @@ export function ResultCeremony({
                 </div>
               </div>
               <div class="relative shrink-0 self-center text-right">
-                <span class="font-digits text-3xl leading-none text-ink emboss">
+                <span class="emboss font-digits text-3xl leading-none text-ink">
                   {num ?? "–"}
                 </span>
                 {isActive && bonusChip.value && (
-                  <span class="animate-popIn absolute -right-1 -top-4 rounded-full bg-amber-300 px-1.5 py-px text-xs font-bold text-amber-900 ring-1 ring-amber-500/50 emboss">
+                  // Reuses the gold tone (same amber treatment as the milestone
+                  // badges) at the tighter `sm` size. Weight follows the tone
+                  // (semibold) — overriding it back to bold would need a
+                  // class-merge helper (tailwind-merge), which isn't wired up.
+                  <Badge
+                    tone="gold"
+                    size="sm"
+                    class="absolute -top-4 -right-1 animate-popIn"
+                  >
                     +35
-                  </span>
+                  </Badge>
                 )}
               </div>
-            </div>
+            </Row>
           );
         })}
       </div>
-      {!finished.value && (
-        <div class="animate-fadeIn mt-4 text-center text-xs text-primary-400">
-          {t.tapToSkip}
-        </div>
-      )}
+      {/* Reserve the line's height so the card doesn't shrink (and the screen
+          re-centre) the moment the ceremony finishes and the hint clears. */}
+      <div class="mt-4 h-4 text-center text-xs text-primary-400">
+        {!finished.value && <span class="animate-fadeIn">{t.tapToSkip}</span>}
+      </div>
     </div>
   );
 }

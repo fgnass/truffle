@@ -38,9 +38,9 @@ export function StartLogo() {
     >
       <Pig
         key={replayKey}
-        class="w-52 h-auto text-primary-950 drop-emboss translate-x-2"
+        class="drop-emboss h-auto w-52 translate-x-2 text-primary-950"
       />
-      <TruffleLogo class="relative -mt-7 w-52 h-auto drop-emboss" />
+      <TruffleLogo class="drop-emboss relative -mt-7 h-auto w-52" />
     </div>
   );
 }
