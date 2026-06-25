@@ -44,6 +44,10 @@ export function PlayerNames() {
     !!trimmed &&
     !allNames.value.some((n) => n.toLowerCase() === trimmed.toLowerCase());
 
+  // Starting the game flushes a name still sitting in the input, so a player
+  // typed but never added (forgot the + button) isn't silently dropped.
+  const roster = isNewName ? [...selected.value, trimmed] : selected.value;
+
   const toggle = (name: string) => {
     selected.value = selected.value.includes(name)
       ? selected.value.filter((n) => n !== name)
@@ -194,8 +198,8 @@ export function PlayerNames() {
               </Button>
               <Button
                 class="text-lg"
-                disabled={selected.value.length < 1}
-                onClick={() => startGame(selected.value)}
+                disabled={roster.length < 1}
+                onClick={() => startGame(roster)}
               >
                 {t.letsGo}
               </Button>

@@ -18,6 +18,7 @@ import {
   players,
   currentPlayer,
   digging,
+  celebrate,
   computerPlayer,
   shaking,
   shakingActive,
@@ -113,6 +114,7 @@ export function Game() {
     badgeFlawless,
     piggyPick,
     piggyKeep,
+    piggyRoll,
     adviceNeeded,
     name,
     human,
@@ -297,21 +299,22 @@ export function Game() {
         )}
       </div>
       <Scene numberOfDice={throwing.value} auto={!human} onResult={setResult} />
-      {human && (piggyPick.value !== null || piggyKeep.value !== null) && (
-        <PiggyHint />
-      )}
+      {human &&
+        (piggyPick.value !== null ||
+          piggyKeep.value !== null ||
+          piggyRoll.value !== null) && <PiggyHint />}
       {perfect.value && (
         <div class="pointer-events-none fixed top-[22%] left-1/2 -translate-x-1/2">
           <div class="drop-emboss relative text-center font-logo leading-none tracking-tight [paint-order:stroke]">
             <div
-              key={`p${throwNum.value}:${combo.value}`}
+              key={`p${celebrate.value}`}
               class="animate-fly text-5xl text-primary-600 [-webkit-text-stroke:8px_#fff]"
             >
               {badgeFlawless.value ? t.perfect : t.nice}
             </div>
             {roundComplete.value && combo.value >= 2 && (
               <div
-                key={`c${throwNum.value}:${combo.value}`}
+                key={`c${celebrate.value}`}
                 class="absolute inset-x-0 top-0 animate-comboBadge text-4xl text-amber-500 [-webkit-text-stroke:6px_#fff]"
               >
                 {t.combo(combo.value)}

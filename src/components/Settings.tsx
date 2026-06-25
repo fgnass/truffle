@@ -18,6 +18,7 @@ import { distributeGame } from "../net";
 import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 import { Dialog } from "./Dialog";
+import { DialogTitle } from "./DialogTitle";
 import { ShareButton } from "./ShareButton";
 import { ToggleRow } from "./ToggleRow";
 import { canInstall, promptInstall } from "../installPrompt";
@@ -35,7 +36,7 @@ export function Settings() {
     <>
       <Dialog onClose={close} class="flex w-full max-w-sm flex-col gap-4 p-5">
         <div class="flex items-center justify-between">
-          <h2 class="font-logo text-2xl text-ink">{t.settingsTitle}</h2>
+          <DialogTitle>{t.settingsTitle}</DialogTitle>
           <IconButton onClick={close} aria-label={t.close}>
             <X class="size-5" />
           </IconButton>
@@ -132,7 +133,7 @@ export function Settings() {
           onClose={() => setConfirmReset(false)}
           class="flex w-full max-w-xs flex-col gap-4 p-5"
         >
-          <h2 class="font-logo text-2xl text-ink">{t.resetStats}</h2>
+          <DialogTitle>{t.resetStats}</DialogTitle>
           <p class="text-body leading-snug text-neutral-600">
             {t.resetStatsBody}
           </p>

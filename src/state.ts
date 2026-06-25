@@ -95,6 +95,14 @@ export const motionAvailable = signal(false);
 export const digging = signal(0);
 export const currentPlayer = signal(0);
 
+// Monotonic celebration counter, bumped each time a "Perfekt!"/"Stark" (and the
+// combo) badge should fire. The badge animations (animate-fly / animate-comboBadge)
+// only run on mount, so they're keyed by this counter: two consecutive perfect
+// moves that happen to share the same throw/combo would otherwise reuse the DOM
+// node and the animation would never replay. `perfect` still gates visibility;
+// this just guarantees a fresh element — and thus a fresh animation — every time.
+export const celebrate = signal(0);
+
 // --- Online (P2P) mode -----------------------------------------------------
 // True once an online game has been started via net.ts. In this mode every
 // device drives only its own player (`localPlayer`); the others are read-only
@@ -181,13 +189,18 @@ export class PlayerState {
   // Dice Piggy would have kept when the player is about to re-roll a suboptimal
   // selection. Set proactively (before the throw), drives the same hint modal.
   piggyKeep = signal<number[] | null>(null);
-  // True once Piggy's recommendation has been shown during the current round (the
-  // keep hint). It outlives the player's decision — undoing and hand-picking
-  // Piggy's move can't clear it — so a round in which the player peeked earns no
-  // celebration badge, even if they end up making the optimal move. Reset at the
-  // start of each round. Seeing the hint also drops the game-wide `flawless` flag,
-  // downgrading later perfect rounds to the lesser "Nice" badge (never silencing
-  // them).
+  // Dice Piggy would have kept when the player banked a category too early —
+  // throws still left and the optimal play was to re-roll, not to score. Set
+  // reactively (in assignScore), drives the same hint modal; null hides it.
+  piggyRoll = signal<number[] | null>(null);
+  // True once Piggy's keep recommendation has been shown during the current
+  // round — suppresses re-nagging until the player decides. `rollAnyway` clears
+  // it on a dismissal so a *later* deviation this turn can be coached again;
+  // adopting the move (or undoing) leaves it set. It can't be exploited for a
+  // badge: showing the hint already drops `roundPerfect` (and the game-wide
+  // `flawless`), neither of which is restored until the round completes, so a
+  // round in which the player peeked stays un-celebrated even if they end up
+  // playing optimally. Reset at the start of each round.
   piggySeen = signal(false);
   // Picks the wording of the celebration badge for the move it currently
   // accompanies: true → "Perfekt!" (the turn was flawless up to this move),
@@ -317,6 +330,7 @@ export class PlayerState {
     this.flawless.value = true;
     this.piggyPick.value = null;
     this.piggyKeep.value = null;
+    this.piggyRoll.value = null;
     this.piggySeen.value = false;
     this.badgeFlawless.value = true;
     this.adviceNeeded.value = false;
@@ -602,6 +616,7 @@ export function rollDice(force = false) {
     badgeFlawless,
     piggyPick,
     piggyKeep,
+    piggyRoll,
     piggySeen,
     advice,
     adviceNeeded,
@@ -652,13 +667,17 @@ export function rollDice(force = false) {
     // Piggy (piggySeen) already cleared roundPerfect, so it reads as "Stark" — but
     // it no longer suppresses the badge entirely.
     perfect.value = optimalKeep;
-    if (optimalKeep) badgeFlawless.value = roundPerfect.value;
+    if (optimalKeep) {
+      badgeFlawless.value = roundPerfect.value;
+      celebrate.value++;
+    }
     if (advice.value instanceof Array && !optimalKeep) {
       roundPerfect.value = false;
       flawless.value = false;
     }
     piggyPick.value = null;
     piggyKeep.value = null;
+    piggyRoll.value = null;
     roll.value = keep;
     prevState.value = null;
     selection.value = Array(5).fill(true).fill(false, roll.value.length);
@@ -690,6 +709,7 @@ export function assignScore(cat: number) {
     flawless,
     badgeFlawless,
     piggyPick,
+    piggyRoll,
     piggySeen,
     advice,
     adviceNeeded,
@@ -698,6 +718,16 @@ export function assignScore(cat: number) {
   if (scores.value[cat] === null && roll.value.length === 5) {
     batch(() => {
       const optimalPick = !adviceNeeded.value && advice.value === cat;
+      // Coach a premature bank: when the player still had throws left and Piggy's
+      // optimal play was to re-roll (advice is a dice keep, not a category), they
+      // ended the round too early. Only when the move was made on their own and
+      // they haven't already been shown a recommendation this turn.
+      const couldHaveRolled =
+        !adviceNeeded.value &&
+        !piggySeen.value &&
+        piggyHints.value &&
+        throwNum.value < 3 &&
+        advice.value instanceof Array;
       if (!optimalPick) {
         roundPerfect.value = false;
         flawless.value = false;
@@ -712,8 +742,10 @@ export function assignScore(cat: number) {
           piggyHints.value
             ? advice.value
             : null;
+        piggyRoll.value = couldHaveRolled ? (advice.value as number[]) : null;
       } else {
         piggyPick.value = null;
+        piggyRoll.value = null;
       }
       // The round is complete. A fully flawless round extends the combo streak;
       // anything else resets it, and only a flawless round unlocks the combo
@@ -722,6 +754,7 @@ export function assignScore(cat: number) {
       // spotless, "Stark" if the player had deviated earlier but landed the pick.
       const roundWasPerfect = roundPerfect.value;
       perfect.value = optimalPick;
+      if (optimalPick) celebrate.value++;
       badgeFlawless.value = roundWasPerfect;
       roundComplete.value = roundWasPerfect; // unlocks the combo multiplier badge
       combo.value = roundWasPerfect ? combo.value + 1 : 0;
@@ -751,6 +784,7 @@ export function nextPlayer() {
     currentPlayerState.value.perfect.value = false;
     currentPlayerState.value.piggyPick.value = null;
     currentPlayerState.value.piggyKeep.value = null;
+    currentPlayerState.value.piggyRoll.value = null;
     currentPlayerState.value.prevState.value = null;
     currentPlayer.value = (currentPlayer.value + 1) % players.value.length;
     currentPlayerState.value.throwNum.value = 0;
@@ -770,6 +804,7 @@ export function undo() {
     roundPerfect,
     piggyPick,
     piggyKeep,
+    piggyRoll,
   } = currentPlayerState.value;
   const prev = prevState.value;
   if (prev) {
@@ -780,6 +815,7 @@ export function undo() {
       roundPerfect.value = false;
       piggyPick.value = null;
       piggyKeep.value = null;
+      piggyRoll.value = null;
       scores.value = prev.scores;
       roll.value = prev.roll;
       throwNum.value = prev.throwNum;
@@ -824,8 +860,37 @@ export function applyPiggyKeep() {
   rollDice(true);
 }
 
+// Take back the category the player banked too early and replay Piggy's line:
+// undo() restores the open category + the 5-dice roll + the throw count, then we
+// adopt Piggy's keep selection and re-roll (force, so the replay isn't counted as
+// perfect). Leaning on Piggy here counts as advice, same as the other "use it"
+// paths.
+export function applyPiggyRoll() {
+  const player = currentPlayerState.value;
+  const keep = player.piggyRoll.value;
+  if (!keep) return;
+  if (player.human) player.adviceCount.value++;
+  undo(); // restores roll/throwNum/scores and clears piggyRoll
+  const remaining = [...keep];
+  player.selection.value = player.roll.value.map((v) => {
+    const i = remaining.indexOf(v);
+    if (i >= 0) {
+      remaining.splice(i, 1);
+      return true;
+    }
+    return false;
+  });
+  rollDice(true);
+}
+
 // Dismiss the keep hint and roll with the player's own selection after all.
+// Clearing `piggySeen` lets a *later* deviation this turn (another bad keep, or
+// a suboptimal category pick) surface the hint again — declining Piggy once
+// shouldn't mute coaching for the rest of the turn. The round stays un-celebrated
+// regardless: `roundPerfect`/`flawless` were dropped when the hint first showed
+// and aren't restored until the round completes.
 export function rollAnyway() {
+  currentPlayerState.value.piggySeen.value = false;
   currentPlayerState.value.piggyKeep.value = null;
   rollDice(true);
 }

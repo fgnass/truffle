@@ -36,6 +36,9 @@
 
   /* Soft shadow; callers tint it via a `shadow-<color>` utility. */
   --shadow-subtle: 1px 2px 4px var(--tw-shadow-color, rgba(63, 26, 133, 0.22));
+  /* Same offset, but hard-edged (no blur) — used by the solid buttons; tinted
+     per-intent via a `shadow-<color>` utility. */
+  --shadow-hard: 1px 2px 0 var(--tw-shadow-color, rgba(63, 26, 133, 0.22));
   /* Stacked drop shadow that lifts the white "paper" surfaces. */
   --shadow-paper:
     rgba(0, 0, 0, 0.07) 0px 1px 1px, rgba(0, 0, 0, 0.07) 0px 2px 2px,
@@ -189,6 +192,13 @@ html {
    off the purple backdrop. Same offset everywhere so the set reads as one. */
 .drop-emboss {
   filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.18));
+}
+
+/* Dialog / sheet titles (see DialogTitle): a primary-700 fill (the primary
+   button's colour) lifted by an offset shadow in primary-300 — the same tone as
+   the inactive slide-indicator dots. */
+.title-drop {
+  text-shadow: 1px 2px 0 var(--color-primary-300);
 }
 
 @media (prefers-reduced-motion: no-preference) {

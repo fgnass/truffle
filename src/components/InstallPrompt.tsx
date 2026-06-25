@@ -10,6 +10,7 @@ import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 import { Overlay } from "./Overlay";
 import { StitchedCard } from "./card";
+import { DialogTitle } from "./DialogTitle";
 
 export function InstallPrompt() {
   if (!installPromptOpen.value || !canInstall.value) return null;
@@ -25,9 +26,7 @@ export function InstallPrompt() {
       >
         <div class="flex items-start justify-between gap-3">
           <div>
-            <h2 class="font-logo text-2xl leading-none text-ink">
-              {t.installTitle}
-            </h2>
+            <DialogTitle class="leading-none">{t.installTitle}</DialogTitle>
             <p class="mt-2 text-body leading-snug text-neutral-600">
               {t.installBody}
             </p>

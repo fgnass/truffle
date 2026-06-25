@@ -4,6 +4,7 @@ import { Button } from "../components/Button";
 import { StartLogo } from "../components/StartLogo";
 import { SettingsButton } from "../components/SettingsButton";
 import { StitchedCard } from "../components/card";
+import { DialogTitle } from "../components/DialogTitle";
 
 // First-run guided tour. It takes the start screen's place — same animated Pig
 // logo on top — with a small carousel card where the roster normally sits,
@@ -45,7 +46,25 @@ export function Intro() {
                     i === step ? "" : "invisible opacity-0"
                   }`}
                 >
-                  <h2 class="font-logo text-2xl text-ink">{s.title}</h2>
+                  <DialogTitle class="flex items-center justify-center gap-1.5">
+                    {/* The "Meet Piggy" slide gets a little hand-drawn arrow
+                        nodding up to the mascot above the card. */}
+                    {i === 1 && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 11 12"
+                        class="h-[1em] w-auto shrink-0 [filter:drop-shadow(1px_2px_0_var(--color-primary-300))]"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M9.856 9.712c-.849-.092-4.614.204-5.737.153.294.011-.281-.011 0 0l-.446-.014-.226-.006-.166-.013c-.115-.002-.212-.03-.317-.042-.051-.008-.094-.026-.142-.036a.5.5 0 0 1-.13-.042.85.85 0 0 1-.362-.217.56.56 0 0 1-.145-.283.96.96 0 0 1 .02-.45c.01-.086.055-.179.082-.27.04-.095.08-.179.13-.286l.379-.72c.486-.942 1.539-2.962 1.856-3.7-.109.299.157-.365 0 0 .173.594.115 1.287.298 1.731.137.331.273 1.223.406 1.447.24.405.612-.491.802-.524.297-.05.304-.188.31-1.18.002-.496-.032-1.08-.102-1.724l-.06-.493-.018-.132c-.014-.083-.13-1.652-.13-1.652 0-.69.003-1.221-.4-1.258-.402-.037-1.352.78-1.985 1.157l-.468.281-.228.138-.12.077-.434.288c-.562.382-1.052.75-1.447 1.083-.79.667-1.2 1.2-1.043 1.438.323.001.109.507.323.501.33-.009.923-.503 1.528-.718.346-.123.73-.279 1.14-.46q-.179.223-.369.476a43 43 0 0 0-1.626 2.334l-.443.688c-.08.138-.175.3-.253.46-.072.173-.152.338-.2.532-.115.37-.168.805-.089 1.265.073.457.302.937.66 1.305.092.087.182.181.282.255q.15.11.305.212.157.084.317.162c.107.054.213.084.32.125.427.144.843.204 1.23.214l.29.006.225-.006.446-.013c-.281.01.294-.012 0 0 0 0 2.127-.034 3.237-.034 2.8 0 3.22.053 3-.454-.091-.211.03-.477.152-.74.224-.483.448-.742-.652-.861"
+                        />
+                      </svg>
+                    )}
+                    {s.title}
+                  </DialogTitle>
                   <p class="text-body leading-snug text-primary-900">
                     {s.body}
                   </p>
