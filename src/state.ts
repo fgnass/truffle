@@ -2,7 +2,7 @@ import { batch, computed, effect, signal } from "@preact/signals";
 import _ from "lodash";
 
 import * as translations from "./i18n";
-import { getAdvice, getCategoryScore, rollsMatch } from "./strategy";
+import { dataReady, getAdvice, getCategoryScore, rollsMatch } from "./strategy";
 import { recordGame, rankPlayers, type GameRecord } from "./stats";
 
 // True once a game has been started (a roster is built). The app opens on the
@@ -238,6 +238,9 @@ export class PlayerState {
   });
 
   advice = computed<null | string | number | number[]>(() => {
+    // The strategy tables aren't loaded yet — any advice would be read off a
+    // zero-filled table, so withhold it (no garbage hints / computer picks).
+    if (!dataReady.value) return null;
     const active = this.throwNum.value > 0 && this.throwNum.value <= 3;
     if (this.roll.value.length !== 5 || !active) return null;
     const scores = this.scores.value.map((s) => s ?? -1);

@@ -898,6 +898,24 @@ export class Scene extends Component<Props> {
     }
     window.removeEventListener("devicemotion", this.handleMotion);
     window.removeEventListener("resize", this.handleResize);
+
+    // Release GPU resources. A fresh Scene (and WebGLRenderer) is created every
+    // game, so without this each finished game leaks a WebGL context — browsers
+    // cap them (~16) and start dropping the oldest — plus its geometries,
+    // materials and textures. Disposing the same shared geometry twice is a
+    // harmless no-op in three.js, so a blanket traverse is safe.
+    const dispose = (root: THREE.Object3D) =>
+      root.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        mesh.geometry?.dispose?.();
+        const mat = mesh.material;
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else mat?.dispose?.();
+      });
+    dispose(this.scene);
+    dispose(this.diceMesh);
+    this.renderer.dispose();
+    this.renderer.domElement.remove();
   }
 }
 

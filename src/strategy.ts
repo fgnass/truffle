@@ -1,5 +1,12 @@
 // Based on https://holderied.de/kniffel/
 
+import { signal } from "@preact/signals";
+
+// True once the optimal-play tables have finished loading. Advice is
+// meaningless until then (the `remaining` table is zero-filled), so consumers
+// gate on this — see the `advice` computed in state.ts.
+export const dataReady = signal(false);
+
 const POW2 = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
 
 const ROLLS = [
@@ -1571,12 +1578,21 @@ const e2 = new Array(252).fill(0);
 const e1 = new Array(252).fill(0);
 
 export async function initData() {
-  const res = await fetch("/training.dat");
-  const data = await res.text();
-  const lines = data.split("\n");
-  console.log("got %i lines", lines.length);
-  for (let i = 0; i < lines.length; i++) {
-    remaining[i] = parseFloat(lines[i]);
+  try {
+    const res = await fetch("/training.dat");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.text();
+    const lines = data.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      // A trailing newline yields an empty last line (NaN) — skip it rather
+      // than poison the table.
+      const v = parseFloat(lines[i]);
+      if (!Number.isNaN(v)) remaining[i] = v;
+    }
+    dataReady.value = true;
+  } catch (err) {
+    // Leave dataReady false so no advice is offered from the zero-filled table.
+    console.error("[truffle] failed to load strategy data:", err);
   }
 }
 
