@@ -8,8 +8,10 @@ import { Lobby } from "./screens/Lobby";
 import { LeaderBoard } from "./screens/LeaderBoard";
 import { Stats } from "./screens/Stats";
 import { Intro } from "./screens/Intro";
+import { DemoHero } from "./screens/DemoHero";
 import { Settings } from "./components/Settings";
 import { InstallPrompt } from "./components/InstallPrompt";
+import { demoScene } from "./demo";
 
 const screens = {
   names: PlayerNames,
@@ -18,11 +20,14 @@ const screens = {
   game: Game,
   stats: Stats,
   intro: Intro,
+  hero: DemoHero,
 } as const;
 
 type ScreenKey = keyof typeof screens;
 
 const screen = computed<ScreenKey>(() => {
+  // Screenshot staging: a logo+dice hero that exists nowhere in the real game.
+  if (demoScene.value === "hero") return "hero";
   // The first-run tour takes over the whole screen until skipped/finished —
   // both at launch and when replayed from settings.
   if (introOpen.value) return "intro";
@@ -76,7 +81,7 @@ export function App() {
     <>
       <Screen />
       <Settings />
-      <InstallPrompt />
+      {!demoScene.value && <InstallPrompt />}
     </>
   );
 }

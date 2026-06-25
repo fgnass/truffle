@@ -1,5 +1,13 @@
 # Truffle 🎲
 
+<p align="center">
+  <img src="public/screenshots/roster.png" width="31%" alt="Building the player roster" />
+  &nbsp;
+  <img src="public/screenshots/dice.png" width="31%" alt="Rolling the 3D physics dice" />
+  &nbsp;
+  <img src="public/screenshots/hero.png" width="31%" alt="Truffle" />
+</p>
+
 My kids and I love playing Yahtzee, or as it's known here in Germany, Kniffel. Sometimes we wonder if a particular decision made during the game was really the best possible move.
 
 I did dive deeper into the topic and found some really interesting scientific papers:

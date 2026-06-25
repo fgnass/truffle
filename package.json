@@ -16,7 +16,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "generate-pwa-assets": "pwa-assets-generator && node scripts/generate-splash-assets.mjs"
+    "generate-pwa-assets": "pwa-assets-generator && node scripts/generate-splash-assets.mjs",
+    "screenshot": "node scripts/screenshot.mjs"
   },
   "dependencies": {
     "@dicebear/core": "^10.1.0",
@@ -40,6 +41,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/three": "^0.163.0",
     "@vite-pwa/assets-generator": "^1.0.2",
+    "playwright": "^1.61.1",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4.3.1",

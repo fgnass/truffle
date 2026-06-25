@@ -15,6 +15,12 @@ export default defineConfig({
       pwaAssets: {
         config: true,
       },
+      workbox: {
+        // The portfolio screenshots live in public/ only so the deployed site
+        // serves them (the portfolio links the live URLs). They aren't part of
+        // the app, so keep them out of the offline precache.
+        globIgnores: ["**/screenshots/**"],
+      },
       manifest: {
         name: "Truffle",
         short_name: "truffle",

@@ -29,6 +29,7 @@ import {
   waitingFor,
 } from "../state";
 import { Scene } from "../components/VirtualDice";
+import { demoScene, DICE_LAYOUT } from "../demo";
 import { Button } from "../components/Button";
 import { Pig } from "../components/Pig";
 import { ScoreSheet } from "../components/ScoreSheet";
@@ -129,9 +130,11 @@ export function Game() {
     matchMedia("(pointer: coarse)").matches;
   const variant = (motion: string, touch: string, mouse: string) =>
     motionAvailable.value ? motion : isTouch ? touch : mouse;
+  // Screenshot staging: freeze a tumbling-dice frame over the board (see demo.ts).
+  const demoDice = demoScene.value === "dice";
   const rollComplete = roll.value.length === 5;
   const selected = selection.value.filter(Boolean).length;
-  const throwInProgress = throwing.value > 0;
+  const throwInProgress = throwing.value > 0 || demoDice;
   const lastThrow = throwNum.value >= 3;
   const diceTiltRef = useRef<HTMLDivElement>(null);
 
@@ -298,7 +301,12 @@ export function Game() {
           />
         )}
       </div>
-      <Scene numberOfDice={throwing.value} auto={!human} onResult={setResult} />
+      <Scene
+        numberOfDice={throwing.value}
+        demo={demoDice ? DICE_LAYOUT : undefined}
+        auto={!human}
+        onResult={setResult}
+      />
       {human &&
         (piggyPick.value !== null ||
           piggyKeep.value !== null ||

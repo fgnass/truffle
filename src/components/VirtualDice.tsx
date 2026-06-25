@@ -122,11 +122,51 @@ const params = {
   scale: 1.6,
 };
 
+// One die placed by the demo/screenshot staging (see stageDemo + src/demo.ts).
+// Either give a `value` (+ optional `yaw`) for a flat, readable die resting on
+// the felt, or an `euler` for a free tumble caught mid-air.
+export type StagedDie = {
+  x: number;
+  y: number;
+  z: number;
+  value?: number;
+  yaw?: number;
+  euler?: [number, number, number];
+};
+
+// Local face normals → up-face value, mirroring Scene.faces. Used to orient a
+// staged die so a chosen value points straight up.
+const FACE_NORMAL: Record<number, THREE.Vector3> = {
+  1: new THREE.Vector3(0, 1, 0),
+  6: new THREE.Vector3(0, -1, 0),
+  2: new THREE.Vector3(1, 0, 0),
+  5: new THREE.Vector3(-1, 0, 0),
+  3: new THREE.Vector3(0, 0, 1),
+  4: new THREE.Vector3(0, 0, -1),
+};
+const UP = new THREE.Vector3(0, 1, 0);
+
+function stagedQuaternion(d: StagedDie): THREE.Quaternion {
+  const q = new THREE.Quaternion();
+  if (d.euler) {
+    return q.setFromEuler(new THREE.Euler(...d.euler));
+  }
+  q.setFromUnitVectors(FACE_NORMAL[d.value ?? 1] ?? UP, UP);
+  if (d.yaw) {
+    q.premultiply(new THREE.Quaternion().setFromAxisAngle(UP, d.yaw));
+  }
+  return q;
+}
+
 type Props = {
   numberOfDice: number;
   // When true (the computer's turn) the dice are arranged randomly offscreen
   // and dropped on their own — no cup, no shaking, no waiting.
   auto?: boolean;
+  // Screenshot staging: render a single still frame with the dice frozen at
+  // these positions/orientations instead of running the live throw. Set only by
+  // the `?demo` modes; see src/demo.ts.
+  demo?: StagedDie[];
   onResult: (dice: number[]) => unknown;
 };
 
@@ -732,6 +772,26 @@ export class Scene extends Component<Props> {
     }
 
     this.updateSceneSize();
+
+    if (this.props.demo) this.stageDemo(this.props.demo);
+  }
+
+  // Place the dice at fixed positions/orientations and render one still frame —
+  // no physics, no animation loop — so a screenshot captures a deterministic
+  // "dice in flight" composition (see src/demo.ts). Only the meshes are touched;
+  // the physics bodies stay parked. Signals the screenshot script when done.
+  private stageDemo(layout: StagedDie[]) {
+    for (let i = 0; i < layout.length && i < this.diceArray.length; i++) {
+      const d = layout[i];
+      const { mesh } = this.diceArray[i];
+      mesh.position.set(d.x, d.y, d.z);
+      mesh.quaternion.copy(stagedQuaternion(d));
+      mesh.visible = true;
+      this.scene.add(mesh);
+    }
+    this.renderer.render(this.scene, this.camera);
+    (window as Window & { __truffleDemoReady?: boolean }).__truffleDemoReady =
+      true;
   }
 
   updateSceneSize() {
