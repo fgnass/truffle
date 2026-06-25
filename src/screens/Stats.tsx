@@ -1,7 +1,15 @@
 import { useComputed, useSignal } from "@preact/signals";
 import { ChevronLeft } from "lucide-preact";
-import { closeStats, i18n, statsRoster } from "../state";
+import {
+  closeStats,
+  gameFinished,
+  i18n,
+  replayWithParty,
+  started,
+  statsRoster,
+} from "../state";
 import { games, highScores } from "../stats";
+import { Button } from "../components/Button";
 import { StitchedCard } from "../components/card";
 import { HighScoreList } from "../components/HighScoreList";
 import { IconButton } from "../components/IconButton";
@@ -68,6 +76,17 @@ export function Stats() {
           {rows.value.length > 0 && (
             <p class="text-center text-xs text-white/60">{t.tapForStats}</p>
           )}
+        </div>
+      )}
+
+      {/* A solo game ends here (it has no podium), so this is its only way back
+          to a new game — pinned to the bottom like the leaderboard's. Shown for
+          any finished game being viewed, not the all-time/mid-game stats. */}
+      {started.value && gameFinished.value && (
+        <div class="mx-auto mt-auto w-full max-w-sm px-5">
+          <Button class="w-full" onClick={replayWithParty}>
+            {t.playAgain}
+          </Button>
         </div>
       )}
 
