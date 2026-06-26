@@ -149,6 +149,17 @@ export const finalRanking = computed(() => {
   return ranked;
 });
 
+// True once the end-game scoring ceremony has fully played out — the ranked
+// podium has settled, or the solo tally has slid into stats. The auto install
+// prompt waits on this (see installPrompt.ts) so it doesn't pop over the
+// scoring animation. Set by ResultCeremony; auto-cleared whenever a game is no
+// longer finished (a new game / replay), so the next game's ceremony gates it
+// again.
+export const scoringRevealed = signal(false);
+effect(() => {
+  if (!gameFinished.value) scoringRevealed.value = false;
+});
+
 function sum(a: number | null, b: number | null) {
   return (a ?? 0) + (b ?? 0);
 }
@@ -837,8 +848,10 @@ export function applyPiggyMove() {
   player.adviceNeeded.value = true;
 }
 
-// Adopt Piggy's recommended dice (translate the kept values into a selection),
-// then roll. force keeps the throw from being scored as perfect.
+// Adopt Piggy's recommended dice: translate the kept values into a selection
+// and dismiss the hint, but stop there. The player still taps "roll" to throw
+// the rest — accepting the tip only highlights which dice to hold, it doesn't
+// lock in the re-roll for them.
 export function applyPiggyKeep() {
   const player = currentPlayerState.value;
   const keep = player.piggyKeep.value;
@@ -857,7 +870,6 @@ export function applyPiggyKeep() {
     return false;
   });
   player.piggyKeep.value = null;
-  rollDice(true);
 }
 
 // Take back the category the player banked too early and replay Piggy's line:

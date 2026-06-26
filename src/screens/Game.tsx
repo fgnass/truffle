@@ -37,6 +37,9 @@ import { PiggyHint } from "../components/PiggyHint";
 import { PlayerStrip } from "../components/PlayerStrip";
 
 const SHAKE_THRESHOLD = 22;
+// accelerationIncludingGravity reads ~1g (≈9.8) at rest, so anything below this
+// counts as the device being held still — see the `armed` gate below.
+const SHAKE_REST = 14;
 const SHAKE_COOLDOWN_MS = 900;
 
 function clamp(value: number, min: number, max: number) {
@@ -45,11 +48,19 @@ function clamp(value: number, min: number, max: number) {
 
 function useDeviceShake(enabled: boolean, onShake: () => void) {
   const lastShakeAt = useRef(0);
+  // A roll fires only on a *fresh* shake: the device has to read calm at least
+  // once before a spike counts. Without this, the wild shaking a player uses to
+  // settle stuck dice carries straight over into a new throw the instant the
+  // previous one resolves (re-rolling unintentionally, and popping Piggy's keep
+  // hint with nothing kept). Resetting on every re-enable means the player must
+  // hold still and shake again rather than ride one continuous motion.
+  const armed = useRef(false);
   const onShakeRef = useRef(onShake);
   onShakeRef.current = onShake;
 
   useEffect(() => {
     if (!enabled) return;
+    armed.current = false;
 
     const handleMotion = (event: DeviceMotionEvent) => {
       const acceleration =
@@ -62,13 +73,22 @@ function useDeviceShake(enabled: boolean, onShake: () => void) {
       const force = Math.sqrt(x * x + y * y + z * z);
       const now = performance.now();
 
+      // Device at rest — arm the next shake.
+      if (force < SHAKE_REST) {
+        armed.current = true;
+        return;
+      }
+
       if (
+        !armed.current ||
         force < SHAKE_THRESHOLD ||
         now - lastShakeAt.current < SHAKE_COOLDOWN_MS
       ) {
         return;
       }
 
+      // Consume the arm so a single continuous shake fires exactly one roll.
+      armed.current = false;
       lastShakeAt.current = now;
       // Haptic feedback for the registered shake (Android; iOS Safari has no
       // Vibration API and silently ignores this).
@@ -91,7 +111,13 @@ function useDeviceTilt(targetRef: { current: HTMLElement | null }) {
       const beta = clamp(event.beta ?? 0, -28, 28);
       target.style.setProperty("--tilt-x", `${(-beta / 28) * 7}deg`);
       target.style.setProperty("--tilt-y", `${(gamma / 28) * 7}deg`);
-      target.style.setProperty("--shadow-x", `${(gamma / 28) * 0.45}em`);
+      // Keep the light source fixed: the shadow only ever lengthens/shifts on
+      // one side (anchored at the resting 0.18em) instead of crossing zero and
+      // flipping to the other side as the device tilts left/right.
+      target.style.setProperty(
+        "--shadow-x",
+        `${clamp(0.18 + (gamma / 28) * 0.18, 0, 0.36)}em`,
+      );
       target.style.setProperty("--shadow-y", `${0.5 + (beta / 28) * 0.18}em`);
     };
 
@@ -166,6 +192,7 @@ export function Game() {
     round.value <= 13 &&
     !digging.value &&
     !lastThrow &&
+    !throwInProgress &&
     !waiting.value &&
     !selected;
 

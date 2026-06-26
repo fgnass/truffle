@@ -2,7 +2,13 @@ import { Signal, useSignal } from "@preact/signals";
 import { ComponentChildren } from "preact";
 import { styled, tw } from "classname-variants/preact";
 import { useEffect } from "preact/hooks";
-import { i18n, openStats, players, type PlayerState } from "../state";
+import {
+  i18n,
+  openStats,
+  players,
+  scoringRevealed,
+  type PlayerState,
+} from "../state";
 import { compareToHistory, highScores, rankPlayers } from "../stats";
 import { makeClock, reduceMotion } from "../ceremonyClock";
 import { Trophy } from "lucide-preact";
@@ -107,10 +113,15 @@ export function ResultCeremony({
     const finalOrder = () =>
       [...order.keys()].sort((a, b) => total(order[b]) - total(order[a]));
 
+    // The scoring is now on screen — let the install prompt (which waits on
+    // this) appear once the ceremony settles, never over the running tally.
+    const reveal = () => (scoringRevealed.value = true);
+
     // Skip: drain the sequence and snap to the settled end state.
     const skip = () => {
       if (finished.value) return;
       clock.cancel();
+      reveal();
       if (solo) {
         openStats([order[0].name.value ?? ""]);
         return;
@@ -153,6 +164,7 @@ export function ResultCeremony({
 
     const runSolo = async () => {
       if (reduceMotion) {
+        reveal();
         openStats([order[0].name.value ?? ""]);
         return;
       }
@@ -167,6 +179,7 @@ export function ResultCeremony({
       soloHeadline.value = true;
       await clock.delay(2200);
       if (clock.cancelled) return;
+      reveal();
       openStats([order[0].name.value ?? ""]);
     };
 
@@ -206,6 +219,7 @@ export function ResultCeremony({
       }
       if (clock.cancelled) return;
       finished.value = true;
+      reveal();
     };
 
     void (solo ? runSolo() : runRanked());

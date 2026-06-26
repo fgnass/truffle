@@ -1,5 +1,5 @@
 import { computed, effect, signal } from "@preact/signals";
-import { gameFinished } from "./state";
+import { scoringRevealed } from "./state";
 
 const AUTO_PROMPT_KEY = "truffle.installPromptShown.v1";
 
@@ -38,7 +38,9 @@ matchMedia("(display-mode: standalone)").addEventListener("change", () => {
 });
 
 effect(() => {
-  if (!gameFinished.value || !canInstall.value) return;
+  // Wait for the end-game scoring ceremony to finish playing out, so the prompt
+  // lands on the settled leaderboard/stats rather than over the running tally.
+  if (!scoringRevealed.value || !canInstall.value) return;
   if (localStorage.getItem(AUTO_PROMPT_KEY) === "1") return;
 
   localStorage.setItem(AUTO_PROMPT_KEY, "1");
