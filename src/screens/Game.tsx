@@ -27,6 +27,7 @@ import {
   online,
   waiting,
   waitingFor,
+  dealtFrom,
 } from "../state";
 import { Scene } from "../components/VirtualDice";
 import { demoScene, DICE_LAYOUT } from "../demo";
@@ -35,6 +36,11 @@ import { Pig } from "../components/Pig";
 import { ScoreSheet } from "../components/ScoreSheet";
 import { PiggyHint } from "../components/PiggyHint";
 import { PlayerStrip } from "../components/PlayerStrip";
+
+// Decelerating deal-in stagger (gaps shrink 150→120→90→60ms): the first new
+// dice read individually, later ones catch up, so the cascade settles like a
+// wave. Indexed by a die's position among the freshly thrown dice.
+const STAMP_DELAY = [0, 150, 270, 360, 420];
 
 const SHAKE_THRESHOLD = 22;
 // accelerationIncludingGravity reads ~1g (≈9.8) at rest, so anything below this
@@ -109,16 +115,11 @@ function useDeviceTilt(targetRef: { current: HTMLElement | null }) {
 
       const gamma = clamp(event.gamma ?? 0, -28, 28);
       const beta = clamp(event.beta ?? 0, -28, 28);
+      // Only the rack's 3D tilt tracks the device. The dice shadows stay put
+      // (their CSS defaults): a shadow that shifts/flips with every wobble reads
+      // as the light source jumping around, which looked wrong.
       target.style.setProperty("--tilt-x", `${(-beta / 28) * 7}deg`);
       target.style.setProperty("--tilt-y", `${(gamma / 28) * 7}deg`);
-      // Keep the light source fixed: the shadow only ever lengthens/shifts on
-      // one side (anchored at the resting 0.18em) instead of crossing zero and
-      // flipping to the other side as the device tilts left/right.
-      target.style.setProperty(
-        "--shadow-x",
-        `${clamp(0.18 + (gamma / 28) * 0.18, 0, 0.36)}em`,
-      );
-      target.style.setProperty("--shadow-y", `${0.5 + (beta / 28) * 0.18}em`);
     };
 
     window.addEventListener("deviceorientation", handleOrientation, {
@@ -253,16 +254,23 @@ export function Game() {
               throwInProgress ? "invisible" : ""
             } grid min-h-[3em] grid-cols-5 gap-[clamp(0.35rem,1.5vw,0.5rem)] text-[clamp(0.92rem,3.8vw,1rem)]`}
           >
-            {roll.value.map((value, i) => (
-              <Die
-                key={i}
-                value={value}
-                onPress={() => {
-                  if (roll.value.length === 5) select(i);
-                }}
-                selected={selection.value[i] || throwNum.value >= 3}
-              />
-            ))}
+            {roll.value.map((value, i) => {
+              // Stagger the deal-in across the freshly thrown dice only, so the
+              // new dice cascade from the first open slot instead of starting
+              // late behind the kept dice (which don't re-animate).
+              const order = i - dealtFrom.value;
+              return (
+                <Die
+                  key={i}
+                  value={value}
+                  stampDelay={order >= 0 ? (STAMP_DELAY[order] ?? 0) : 0}
+                  onPress={() => {
+                    if (roll.value.length === 5) select(i);
+                  }}
+                  selected={selection.value[i] || throwNum.value >= 3}
+                />
+              );
+            })}
           </div>
           <div class="mt-4 min-h-6 text-center text-[0.82em] font-medium text-neutral-500">
             {shaking.value && (

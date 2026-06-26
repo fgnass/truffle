@@ -78,6 +78,11 @@ effect(() => {
   localStorage.setItem("truffle.sound", sound.value ? "1" : "0");
 });
 export const throwing = signal(0);
+// Index in the rack where the freshly-thrown dice begin — everything before it
+// was kept from the previous throw. Drives the deal-in cascade (see Game.tsx /
+// the die-stamp rule) so the new dice pop in from the first slot onward instead
+// of inheriting the later stagger delays of the kept dice they sit behind.
+export const dealtFrom = signal(0);
 // True while the dice are in the cup waiting to be shaken/thrown — drives the
 // on-screen shake instructions.
 export const shaking = signal(false);
@@ -153,12 +158,9 @@ export const finalRanking = computed(() => {
 // podium has settled, or the solo tally has slid into stats. The auto install
 // prompt waits on this (see installPrompt.ts) so it doesn't pop over the
 // scoring animation. Set by ResultCeremony; auto-cleared whenever a game is no
-// longer finished (a new game / replay), so the next game's ceremony gates it
-// again.
+// longer finished (a new game / replay) — see the effect after `players` is
+// initialised (it can't run here: gameFinished reads `players`, declared below).
 export const scoringRevealed = signal(false);
-effect(() => {
-  if (!gameFinished.value) scoringRevealed.value = false;
-});
 
 function sum(a: number | null, b: number | null) {
   return (a ?? 0) + (b ?? 0);
@@ -392,6 +394,14 @@ export function addPlayer() {
 }
 
 addPlayer();
+
+// Clear the "ceremony done" flag whenever the game isn't finished (a new game or
+// replay), so the next end-game ceremony has to gate the install prompt again.
+// Lives here, not beside the signal: gameFinished reads `players`, so this
+// eager effect must run only after `players` exists.
+effect(() => {
+  if (!gameFinished.value) scoringRevealed.value = false;
+});
 
 // iOS 13+ gates devicemotion/deviceorientation behind an explicit permission
 // prompt that may only be triggered from a user gesture. Granting one grants
@@ -669,14 +679,16 @@ export function rollDice(force = false) {
     const optimalKeep =
       !force &&
       !adviceNeeded.value &&
+      !piggySeen.value &&
       advice.value instanceof Array &&
       rollsMatch(advice.value, keep);
     // Celebrate a matching dice pick with the badge right away (without the combo
     // multiplier — that waits for the round to complete). The wording reflects the
     // turn so far: "Perfekt!" while the round is still spotless, "Stark" once the
-    // player has deviated this turn but is now back on Piggy's line. A peek at
-    // Piggy (piggySeen) already cleared roundPerfect, so it reads as "Stark" — but
-    // it no longer suppresses the badge entirely.
+    // player has deviated this turn but is now back on Piggy's line. Once the
+    // player has leaned on Piggy's keep hint this turn (piggySeen — they adopted
+    // the suggested dice, then rolled), the keep no longer earns a badge: it's
+    // Piggy's move, not theirs.
     perfect.value = optimalKeep;
     if (optimalKeep) {
       badgeFlawless.value = roundPerfect.value;
@@ -702,6 +714,9 @@ export function setResult(result: number[]) {
   batch(() => {
     throwing.value = 0;
     const { roll } = currentPlayerState.value;
+    // The kept dice already fill the front of the rack; the result lands behind
+    // them, so that's where the deal-in cascade should start.
+    dealtFrom.value = roll.value.length;
     roll.value = roll.value.concat(result).slice(0, 5);
   });
 }
