@@ -46,6 +46,8 @@ const SHOTS = [
   { name: "roster", settleMs: 5200 },
   { name: "dice", settleMs: 400 },
   { name: "hero", settleMs: 5200 },
+  { name: "advice", settleMs: 400 },
+  { name: "lobby", settleMs: 600 },
 ];
 
 function startServer() {

@@ -304,7 +304,9 @@ export function Game() {
       <Scene
         numberOfDice={throwing.value}
         demo={demoDice ? DICE_LAYOUT : undefined}
-        auto={!human}
+        // The `roll` demo scene (screencast capture) forces the auto-throw so the
+        // dice scatter into view on their own — no shake gesture to simulate.
+        auto={!human || demoScene.value === "roll"}
         onResult={setResult}
       />
       {human &&

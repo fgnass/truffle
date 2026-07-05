@@ -3,10 +3,14 @@ import {
   computerPlayer,
   currentPlayer,
   introOpen,
+  piggyTips,
   players,
+  rollDice,
+  roomId,
   rosterDraft,
   startGame,
 } from "./state";
+import { lobbyMode, lobbyNames } from "./net";
 import { games, type GameRecord } from "./stats";
 import type { StagedDie } from "./components/VirtualDice";
 
@@ -17,19 +21,32 @@ import type { StagedDie } from "./components/VirtualDice";
  * actual 3D dice renderer), never a mockup, and stays correct as the app
  * evolves. See `scripts/screenshot.mjs`, which drives the capture.
  *
- * Three scenes:
+ * Still scenes (captured by scripts/screenshot.mjs):
  *   ?demo=roster   the player picker with a pre-filled, partly-selected roster
  *   ?demo=dice     a game mid-throw, the 3D dice frozen tumbling onto the felt
  *   ?demo=hero     a marketing composition that exists nowhere in the game:
  *                  the logo on the purple backdrop with dice in flight in front
+ *   ?demo=advice   the PiggyHint modal revealed over a game board — the pig's
+ *                  optimal-move suggestion (the "would you play like the pig?" beat)
+ *   ?demo=lobby    the online host lobby with a QR code to join (P2P multiplayer)
  *
- * The dice scenes are staged by VirtualDice.stageDemo(), which places the dice
- * at fixed positions/orientations and renders a single still frame (no physics,
- * no animation) — that is what makes "some landed, some frozen mid-air" both
- * possible and repeatable. The screenshot script waits on `__truffleDemoReady`.
+ * The dice/hero scenes are staged by VirtualDice.stageDemo(), which places the
+ * dice at fixed positions/orientations and renders a single still frame (no
+ * physics, no animation) — that is what makes "some landed, some frozen mid-air"
+ * both possible and repeatable. The screenshot script waits on `__truffleDemoReady`.
+ *
+ * Motion scene (captured by scripts/screencast.mjs as a video):
+ *   ?demo=roll     a real game that auto-throws once on load, so the live 3D
+ *                  physics tumble is recorded — never staged/frozen.
  */
 
-export type DemoScene = "roster" | "dice" | "hero";
+export type DemoScene =
+  | "roster"
+  | "dice"
+  | "hero"
+  | "advice"
+  | "lobby"
+  | "roll";
 
 /** Window flag the screenshot script polls once the staged frame is ready. */
 const READY_FLAG = "__truffleDemoReady";
@@ -47,8 +64,9 @@ export function markDemoReady() {
 function readDemoScene(): DemoScene | null {
   if (typeof location === "undefined") return null;
   const value = new URLSearchParams(location.search).get("demo");
-  return value === "roster" || value === "dice" || value === "hero"
-    ? value
+  const scenes = ["roster", "dice", "hero", "advice", "lobby", "roll"] as const;
+  return (scenes as readonly string[]).includes(value ?? "")
+    ? (value as DemoScene)
     : null;
 }
 
@@ -137,6 +155,48 @@ function stageHero() {
   // DemoHero renders the logo + a staged Scene; the Scene marks readiness.
 }
 
+function stageAdvice() {
+  introOpen.value = false;
+  computerPlayer.value = false;
+  startGame(["Felix", "Mara"]);
+  const felix = players.value[0];
+  currentPlayer.value = 0;
+  // A mid-turn board so the PiggyHint modal sits over a game in progress.
+  felix.scores.value = [3, 8, 9, null, 20, null, 22, null, null, null, null, null, null];
+  felix.throwNum.value = 2;
+  felix.roll.value = [6, 6, 3, 2, 1];
+  // Reveal Piggy's suggestion directly (skip the "are you sure?" step); setting
+  // piggyKeep is what mounts + fills the PiggyHint. Leave `throwing` at 0 so no
+  // live dice tumble behind the modal — the still stays deterministic.
+  piggyTips.value = true;
+  felix.piggyKeep.value = [6, 6];
+  requestAnimationFrame(() => requestAnimationFrame(markDemoReady));
+}
+
+function stageLobby() {
+  introOpen.value = false;
+  // A fixed room id (shape matches makeRoomId: 8 hex chars) so the QR + join
+  // link render deterministically — no network is opened, this only dresses the
+  // host lobby UI.
+  roomId.value = "4f3a9c21";
+  lobbyNames.value = { host: "Felix" };
+  lobbyMode.value = "host";
+  requestAnimationFrame(() => requestAnimationFrame(markDemoReady));
+}
+
+function stageRoll() {
+  introOpen.value = false;
+  computerPlayer.value = false;
+  startGame(["Felix", "Mara"]);
+  currentPlayer.value = 0;
+  // Expose a trigger so scripts/screencast.mjs can fire the throw *on camera* —
+  // after the app has painted — instead of auto-rolling during the (blank,
+  // ~seconds-long) initial load where the tumble would go unrecorded.
+  (window as unknown as { __truffleRoll?: () => void }).__truffleRoll = () =>
+    rollDice(true);
+  requestAnimationFrame(() => requestAnimationFrame(markDemoReady));
+}
+
 /** Apply the active demo scene's staging. A no-op in the normal app. */
 export function applyDemo() {
   switch (demoScene.value) {
@@ -146,5 +206,11 @@ export function applyDemo() {
       return stageDice();
     case "hero":
       return stageHero();
+    case "advice":
+      return stageAdvice();
+    case "lobby":
+      return stageLobby();
+    case "roll":
+      return stageRoll();
   }
 }
