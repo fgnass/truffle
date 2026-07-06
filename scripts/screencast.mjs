@@ -25,10 +25,15 @@ const root = resolve(__dirname, "..");
 const outDir = resolve(root, "public", "screenshots");
 const rawDir = resolve(root, ".screencast-raw");
 
-// iPhone-class portrait viewport rendered @2x → 780 × 1688 device pixels, matching
-// the still screenshots. The recorded video is captured at that native size.
+// iPhone-class portrait mobile layout. Playwright's recordVideo captures at the
+// CSS viewport size and ignores deviceScaleFactor (unlike page.screenshot), so
+// the video MUST be recorded at the CSS size (390 × 844) or the frame renders
+// 1:1 in a corner. We then upscale 2× to 780 × 1688 with ffmpeg to match the
+// stills — a bigger CSS viewport is not equivalent: the mobile layout has fixed
+// max-widths and would just look zoomed-out.
 const VIEWPORT = { width: 390, height: 844 };
 const SCALE = 2;
+const CAPTURE_SIZE = { width: 390, height: 844 };
 const VIDEO_SIZE = { width: 780, height: 1688 };
 
 const PORT = 5191;
@@ -97,6 +102,9 @@ function transcode(input, output, startSec) {
         "-y",
         ...pre,
         "-i", input,
+        // Upscale the CSS-resolution capture to the target size (lanczos keeps
+        // the flat UI/text as crisp as an upscale allows).
+        "-vf", `scale=${VIDEO_SIZE.width}:${VIDEO_SIZE.height}:flags=lanczos`,
         "-c:v", "libx264",
         "-preset", "slow",
         "-crf", "20",
@@ -135,7 +143,7 @@ async function main() {
       deviceScaleFactor: SCALE,
       isMobile: true,
       hasTouch: true,
-      recordVideo: { dir: rawDir, size: VIDEO_SIZE },
+      recordVideo: { dir: rawDir, size: CAPTURE_SIZE },
     });
     const page = await context.newPage();
     const url = `${BASE}?demo=${SCENE}`;
