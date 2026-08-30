@@ -57,10 +57,33 @@ const DEVICE = { threshold: 1.5, scale: 0.25 };
 // only once every stuck die has come to rest and wakes them, so further shakes
 // are ignored until they settle again. Dice that land flat resolve; the rest
 // re-prompt the shake.
+//
+// Escalation. A gentle shove doesn't always work: two dice can wedge against
+// each other (or into a corner) in a pose that friction holds no matter how
+// often you slide them sideways — the player shakes and shakes and nothing
+// moves. So repeated shakes escalate: after `tossAfter` fruitless nudges the
+// shake stops being a table-wobble and becomes a real throw — the stuck dice are
+// lifted off the felt and lobbed into the air with a heavy tumble, which cannot
+// leave them in the same wedge. The counter resets whenever a die actually
+// resolves, so a shake that made progress starts over gently.
 const NUDGE = {
   shove: 4.5, // horizontal velocity added to a stuck die per shake
   wallDist: 1.4, // when within this of a wall, shove straight away from it
   emergencyMs: 12000, // safety net: snap any die still stuck after this much inactivity
+  tossAfter: 2, // fruitless nudges before a shake throws the dice up instead
+  // The airborne re-throw. Strong enough to clear the neighbours it's wedged
+  // against and tumble to a genuinely new face, gentle enough to stay on screen.
+  tossUp: 22, // upward velocity
+  tossLateral: 4, // horizontal drift, aimed away from the nearest wall
+  tossSpin: 22, // per-axis tumble
+  // A wedge can also jitter without ever falling asleep, and then no `sleep`
+  // event ever raises `nudging` — the shake gesture would be ignored forever.
+  // So a shake that finds `nudging` false still counts once the dice have had
+  // this long since the last one actually did something.
+  stuckAwakeMs: 1500,
+  // Below this linear/angular speed an awake die is crawling, not tumbling — it
+  // is settling in place or wedged, not on its way somewhere new.
+  restSpeed: 1.5,
 };
 const GRAVITY = 50;
 
@@ -191,6 +214,15 @@ export class Scene extends Component<Props> {
   cupTarget = { x: CUP.home.x, z: CUP.home.z };
   inputMode: "pointer" | "device" = "pointer";
   lastInputAt = 0;
+  // When the last shake actually shoved the dice, and how many shakes in a row
+  // have failed to resolve anything since. Together they drive the escalation
+  // from a gentle nudge to a real airborne throw — see NUDGE / shoveStuckDice.
+  lastNudgeAt = 0;
+  nudgeCount = 0;
+  // When the throw last made progress (landed, or a die resolved). The emergency
+  // watchdog measures from here, not from the last input: a player fighting a
+  // stuck die shakes continuously, which used to postpone the safety net forever.
+  lastProgressAt = 0;
   hasShaken = false;
   pointerStart?: { x: number; y: number };
   pointerMoved = false;
@@ -531,31 +563,85 @@ export class Scene extends Component<Props> {
     cup.velocity.set(vx, 0, vz);
   }
 
-  // A shake during settling fires exactly one hop — but only once every stuck
-  // die has come to rest. evaluateSettle() raises `nudging` precisely then, so
-  // it doubles as both the on-screen prompt and the "a hop is allowed now" gate:
-  // while the dice are still tumbling `nudging` is false and shakes are ignored,
-  // which is what limits the player to one undirected re-roll per rest. Clearing
-  // it here hides the prompt until the dice settle tilted again.
+  // A shake during settling fires exactly one hop — normally only once every
+  // stuck die has come to rest. evaluateSettle() raises `nudging` precisely
+  // then, so it doubles as both the on-screen prompt and the "a hop is allowed
+  // now" gate: while the dice are still tumbling `nudging` is false and shakes
+  // are ignored, which is what limits the player to one undirected re-roll per
+  // rest. Clearing it here hides the prompt until the dice settle tilted again.
+  //
+  // The gate has one escape hatch: a wedged die can jitter against a neighbour
+  // forever without ever falling asleep, so `nudging` would never be raised
+  // again and every further shake would be swallowed — the dice look frozen and
+  // the game is unwinnable. If a shake arrives with the gate closed but nothing
+  // has actually happened for NUDGE.stuckAwakeMs, we treat it as a real shake
+  // anyway.
   private requestNudge() {
-    if (!nudging.value) return;
+    const stalled =
+      performance.now() - this.lastNudgeAt > NUDGE.stuckAwakeMs &&
+      !this.diceInFlight();
+    if (!nudging.value && !stalled) return;
     nudging.value = false;
+    this.lastNudgeAt = performance.now();
+    this.nudgeCount++;
     this.shoveStuckDice();
   }
 
-  // Give every still-unresolved die a horizontal shove so a tilted/edge-balanced
-  // die topples flat under gravity — the table-wobble move, no upward pop. The
-  // push is aimed away from the nearest wall (see shoveDirection) so a leaning
-  // die falls into the open felt rather than back against the wall.
+  // True while an unresolved die is still moving fast enough to plausibly settle
+  // somewhere new on its own — used to tell "the throw is still resolving" apart
+  // from "wedged and jittering in place", which look the same to the sleep gate.
+  private diceInFlight() {
+    for (let i = 0; i < this.throwing; i++) {
+      if (this.resolved[i]) continue;
+      const { body } = this.diceArray[i];
+      if (body.sleepState === CANNON.Body.SLEEPING) continue;
+      if (
+        body.velocity.length() > NUDGE.restSpeed ||
+        body.angularVelocity.length() > NUDGE.restSpeed
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Give every still-unresolved die a shove so a tilted/edge-balanced die
+  // topples flat again. Normally that's the table-wobble move: a purely
+  // horizontal push aimed away from the nearest wall (see shoveDirection), so a
+  // leaning die falls into the open felt rather than back against the wall.
+  //
+  // After NUDGE.tossAfter fruitless shakes in a row the gentle version has
+  // demonstrably failed — the dice are wedged in a pose friction won't release —
+  // so the shake escalates to a real throw: the die is lifted clear of the felt
+  // and lobbed up with a heavy tumble. Landing from a height in a random
+  // orientation cannot reproduce the same wedge, so the deadlock always breaks.
+  // It stays unsteerable: the spin is random, so this re-rolls a stuck die but
+  // never dials in a face.
   private shoveStuckDice() {
+    const toss = this.nudgeCount > NUDGE.tossAfter;
+    const rand = () => (Math.random() * 2 - 1) * NUDGE.tossSpin;
     for (let i = 0; i < this.throwing; i++) {
       if (this.resolved[i]) continue;
       const { body } = this.diceArray[i];
       body.allowSleep = true;
       body.wakeUp();
       const dir = this.shoveDirection(body);
-      body.velocity.x += dir.x * NUDGE.shove;
-      body.velocity.z += dir.z * NUDGE.shove;
+      if (toss) {
+        // Replace the velocity rather than adding to it: a jittering die may
+        // carry contact velocity in the very direction that keeps it wedged.
+        body.velocity.set(
+          dir.x * NUDGE.tossLateral,
+          NUDGE.tossUp,
+          dir.z * NUDGE.tossLateral,
+        );
+        body.angularVelocity.set(rand(), rand(), rand());
+        // Free it from the neighbour it is resting on, so the lob starts clean
+        // instead of being cancelled by the contact it is already in.
+        body.position.y += 0.4;
+      } else {
+        body.velocity.x += dir.x * NUDGE.shove;
+        body.velocity.z += dir.z * NUDGE.shove;
+      }
     }
   }
 
@@ -607,9 +693,12 @@ export class Scene extends Component<Props> {
     this.phase = "settling";
     shaking.value = false;
     shakingActive.value = false;
-    // Reset the emergency clock to the landing moment; the dice resolve as they
-    // come to rest, and a shake re-arms it (handlePointerMove / handleMotion).
+    // Reset the clocks to the landing moment: the dice resolve as they come to
+    // rest, and the safety net counts from the last die that did.
     this.lastInputAt = performance.now();
+    this.lastProgressAt = performance.now();
+    this.lastNudgeAt = performance.now();
+    this.nudgeCount = 0;
     if (this.cupBody) {
       this.physicsWorld.removeBody(this.cupBody);
       this.cupBody = undefined;
@@ -726,6 +815,10 @@ export class Scene extends Component<Props> {
     this.resolved[index] = true;
     this.result[index] = value;
     this.resultCount++;
+    // Progress: the next shake starts gently again, and the safety net's clock
+    // restarts from here.
+    this.nudgeCount = 0;
+    this.lastProgressAt = performance.now();
     if (this.resultCount === this.throwing) {
       this.stopWatchdog();
       this.props.onResult([...this.result]);
@@ -737,20 +830,24 @@ export class Scene extends Component<Props> {
     this.watchdog = setInterval(() => {
       // The computer's stragglers are snapped at once. A human is meant to
       // wiggle them flat, so for them this only fires as a deadlock safety net
-      // after a long stretch with no input at all.
+      // once the throw has gone this long without resolving a single die —
+      // whether they sat still or shook the whole time.
       const emergency =
         !!this.props.auto ||
-        performance.now() - this.lastInputAt > NUDGE.emergencyMs;
+        performance.now() - this.lastProgressAt > NUDGE.emergencyMs;
       for (let i = 0; i < this.throwing; i++) {
         if (this.resolved[i]) continue;
         // A sleeping body won't move again, so an unresolved sleeper is stuck
-        // (edge/wedge). Bodies still in motion get another tick to settle.
-        if (
-          emergency &&
-          this.diceArray[i].body.sleepState === CANNON.Body.SLEEPING
-        ) {
-          this.resolveDie(i);
-        }
+        // (edge/wedge). A body that is awake but crawling is wedged and
+        // jittering — just as stuck, and it never fires a `sleep` event, so it
+        // would otherwise slip past this net forever. Dice genuinely still in
+        // flight get another tick to settle.
+        const { body } = this.diceArray[i];
+        const stuck =
+          body.sleepState === CANNON.Body.SLEEPING ||
+          (body.velocity.length() < NUDGE.restSpeed &&
+            body.angularVelocity.length() < NUDGE.restSpeed);
+        if (emergency && stuck) this.resolveDie(i);
       }
     }, 800);
   }
@@ -823,6 +920,9 @@ export class Scene extends Component<Props> {
     this.inputMode = "pointer";
     this.hasShaken = false;
     this.lastInputAt = performance.now();
+    this.lastProgressAt = performance.now();
+    this.lastNudgeAt = performance.now();
+    this.nudgeCount = 0;
     this.cupTarget = { x: CUP.home.x, z: CUP.home.z };
     this.physicsWorld.gravity.set(0, -GRAVITY, 0);
 
