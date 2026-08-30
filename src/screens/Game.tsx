@@ -4,7 +4,7 @@ import { PigIcon } from "../components/PigIcon";
 import { IconButton } from "../components/IconButton";
 import { SettingsButton } from "../components/SettingsButton";
 import { useEffect, useRef } from "preact/hooks";
-import { useSignalEffect } from "@preact/signals";
+import { useSignal, useSignalEffect } from "@preact/signals";
 import {
   currentPlayerState,
   i18n,
@@ -29,8 +29,10 @@ import {
   waiting,
   waitingFor,
   roundReady,
+  truffleRolled,
 } from "../state";
 import { Scene } from "../components/VirtualDice";
+import { diceSound } from "../components/diceSound";
 import { demoScene, DICE_LAYOUT } from "../demo";
 import { Button } from "../components/Button";
 import { Pig } from "../components/Pig";
@@ -120,6 +122,39 @@ function useRoundReadyBuzz() {
   });
 }
 
+// How long the "Trüffel!" call-out stays on screen — must match the
+// --animate-truffle duration in index.css so the node is removed exactly as the
+// animation ends (leaving it mounted would freeze the last, invisible frame).
+const TRUFFLE_BADGE_MS = 1900;
+
+// Fire the fanfare and the call-out the moment a roll settles on five of a kind.
+// `truffleRolled` is bumped in setResult, i.e. exactly when the physics dice
+// hand their result over and the CSS dice appear — so both land with the dice
+// rather than with the later category pick. The first run is skipped: mounting
+// the screen must not replay a truffle that is already on the table.
+//
+// Returns the counter value to render the badge for (0 = nothing showing). It
+// doubles as the element key, so a second truffle restarts the animation instead
+// of reusing a node that has already played.
+function useTruffle() {
+  const seen = useRef<number | null>(null);
+  const shown = useSignal(0);
+  useSignalEffect(() => {
+    const n = truffleRolled.value;
+    const isNew = seen.current !== null && n > seen.current;
+    seen.current = n;
+    if (!isNew) return;
+    diceSound.truffle();
+    shown.value = n;
+    const id = setTimeout(() => {
+      // Only clear if no newer truffle has taken over in the meantime.
+      if (shown.value === n) shown.value = 0;
+    }, TRUFFLE_BADGE_MS);
+    return () => clearTimeout(id);
+  });
+  return shown;
+}
+
 export function Game() {
   const {
     roll,
@@ -193,6 +228,7 @@ export function Game() {
   });
   useDeviceTilt(diceTiltRef);
   useRoundReadyBuzz();
+  const truffle = useTruffle();
 
   return (
     <div class="mx-auto flex w-[min(100%,440px)] flex-1 flex-col gap-3 px-2 py-2 text-base sm:py-4">
@@ -331,8 +367,27 @@ export function Game() {
         (piggyPick.value !== null ||
           piggyKeep.value !== null ||
           piggyRoll.value !== null) && <PiggyHint />}
+      {/* The truffle call-out: five of a kind, the rarest hand in the game. It
+          sits over the dice it is celebrating, clear of the score sheet — the
+          "Truffle 50 points" row in particular stays readable, since that is
+          what the player looks at next. The perfect/combo badge keeps the upper
+          slot. A truffle is usually a perfect pick too, so the two do fire
+          together; they are stacked rather than made exclusive, because
+          `perfect` outlives this animation (it clears on the next roll), and
+          suppressing the badge for the truffle's duration would only make it pop
+          in afterwards with a spent animation. */}
+      {truffle.value > 0 && (
+        <div class="pointer-events-none fixed top-[57%] left-1/2 z-40 -translate-x-1/2">
+          <div
+            key={`t${truffle.value}`}
+            class="drop-emboss animate-truffle font-logo text-6xl leading-none tracking-tight text-amber-400 [-webkit-text-stroke:9px_#fff] [paint-order:stroke]"
+          >
+            {t.truffleBadge}
+          </div>
+        </div>
+      )}
       {perfect.value && (
-        <div class="pointer-events-none fixed top-[22%] left-1/2 -translate-x-1/2">
+        <div class="pointer-events-none fixed top-[24%] left-1/2 -translate-x-1/2">
           <div class="drop-emboss relative text-center font-logo leading-none tracking-tight [paint-order:stroke]">
             <div
               key={`p${celebrate.value}`}

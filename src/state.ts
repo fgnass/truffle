@@ -709,11 +709,24 @@ export function rollDice(force = false) {
   });
 }
 
+// Bumped the moment a settled roll shows five of a kind — the truffle. A
+// monotonic counter rather than a boolean so two truffles in a row are two
+// distinct events (the same reason `celebrate` is a counter). The Game screen
+// watches it to fire the fanfare; nothing here depends on the player actually
+// scoring the category, so the sound lands with the dice, not with the pick.
+export const truffleRolled = signal(0);
+
 export function setResult(result: number[]) {
   batch(() => {
     throwing.value = 0;
     const { roll } = currentPlayerState.value;
-    roll.value = roll.value.concat(result).slice(0, 5);
+    const settled = roll.value.concat(result).slice(0, 5);
+    roll.value = settled;
+    // Five dice, all the same face. Kept dice count: the truffle is the hand on
+    // the table, however it was assembled.
+    if (settled.length === 5 && settled.every((d) => d === settled[0])) {
+      truffleRolled.value++;
+    }
   });
 }
 
@@ -957,6 +970,15 @@ effect(() => {
 //   finishGame(1)         → solo (personal tally → stats)
 // Stripped from production by the import.meta.env.DEV guard.
 if (import.meta.env.DEV) {
+  // Force the five-of-a-kind call-out + fanfare without rolling for it.
+  //   truffle()   → five sixes on the current player's board
+  (window as unknown as Record<string, unknown>).truffle = (face = 6) => {
+    setResult([]);
+    batch(() => {
+      currentPlayerState.value.roll.value = Array(5).fill(face);
+      truffleRolled.value++;
+    });
+  };
   (window as unknown as Record<string, unknown>).finishGame = (
     n = 3,
     withPiggy = false,

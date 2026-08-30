@@ -1,18 +1,33 @@
-// Synthesized dice impact sounds via the Web Audio API.
+// Dice audio via the Web Audio API.
 //
-// Instead of playing recorded samples, every collision is rendered on the fly
-// using *modal synthesis*: an impact excites a handful of resonant modes of the
-// object, each of which rings as an exponentially-decaying sine wave. Summed
-// together with a short filtered noise burst (the contact transient) this gives
-// a convincing "clack" whose loudness tracks how hard the dice actually hit.
+// Every collision is rendered on the fly using *modal synthesis*: an impact
+// excites a handful of resonant modes of the object, each of which rings as an
+// exponentially-decaying sine wave. Summed together with a short filtered noise
+// burst (the contact transient) this gives a convincing "clack" whose loudness
+// tracks how hard the dice actually hit.
 //
-// Two voices: a low, woody "thock" for hitting the surface (floor / wall) and a
-// brighter, shorter "click" for dice knocking into each other.
+// Three synthesized voices: a low, woody "thock" for hitting the surface
+// (floor / wall), a brighter, shorter "click" for dice knocking into each other,
+// and a hollow knock for the cup wall. Alongside them sits the one recorded
+// sample in the game — the truffle fanfare — which shares this module's audio
+// context and the `sound` toggle.
 
 import { sound } from "../state";
 
+// The truffle fanfare, served from public/. Kept as a plain URL (not a bundled
+// import) so it stays a separate file the service worker can precache.
+const TRUFFLE_URL = `${import.meta.env.BASE_URL}truffle.mp3`;
+// The sample is mastered louder than the synthesized impacts; trim it so the
+// fanfare sits over the dice rather than clipping them.
+const TRUFFLE_GAIN = 0.7;
+
 let ctx: AudioContext | null = null;
 let noiseBuffer: AudioBuffer | null = null;
+// The one recorded sample in the game: the truffle fanfare. Decoded once on
+// first use and reused; null until then, `false` once a load has failed so a
+// missing/undecodable file is not retried on every roll.
+let truffleBuffer: AudioBuffer | false | null = null;
+let trufflePending: Promise<void> | null = null;
 
 function audioCtx() {
   if (!ctx) {
@@ -173,11 +188,60 @@ function play(voice: Voice, velocity: number) {
   }
 }
 
+// Fetch + decode the truffle sample. Runs at most once per page load; callers
+// fire and forget, since a fanfare that misses its beat is not worth blocking on.
+function loadTruffle() {
+  if (truffleBuffer !== null || trufflePending) return trufflePending ?? undefined;
+  trufflePending = fetch(TRUFFLE_URL)
+    .then((r) => {
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.arrayBuffer();
+    })
+    .then((data) => audioCtx().decodeAudioData(data))
+    .then((buf) => {
+      truffleBuffer = buf;
+    })
+    .catch(() => {
+      // No fanfare is better than a broken game: remember the failure and stay
+      // silent from here on.
+      truffleBuffer = false;
+    })
+    .finally(() => {
+      trufflePending = null;
+    });
+  return trufflePending;
+}
+
 export const diceSound = {
   // Prime the audio context from within a user gesture so later impacts aren't
-  // blocked by autoplay policy.
-  unlock: () => audioCtx(),
+  // blocked by autoplay policy. Warm the truffle sample at the same time so the
+  // fanfare is ready to fire the instant a roll lands five of a kind.
+  unlock: () => {
+    audioCtx();
+    void loadTruffle();
+  },
   surface: (velocity: number) => play(surface, velocity),
   collision: (velocity: number) => play(click, velocity),
   cup: (velocity: number) => play(cup, velocity),
+  // The truffle fanfare — a recorded sample rather than a synthesized impact,
+  // played at full level over whatever the dice are still doing.
+  truffle: () => {
+    if (!sound.value) return;
+    const start = (buf: AudioBuffer) => {
+      const ctx = audioCtx();
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.value = TRUFFLE_GAIN;
+      src.connect(g).connect(ctx.destination);
+      src.start();
+    };
+    if (truffleBuffer) return start(truffleBuffer);
+    if (truffleBuffer === false) return; // load failed earlier — stay silent
+    // Not decoded yet (the very first truffle of the session): play it as soon
+    // as it arrives. A few hundred ms late beats not at all.
+    void loadTruffle()?.then(() => {
+      if (truffleBuffer && sound.value) start(truffleBuffer);
+    });
+  },
 };

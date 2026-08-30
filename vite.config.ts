@@ -11,7 +11,10 @@ export default defineConfig({
     preact(),
     truffleSplashScreens(),
     VitePWA({
-      includeAssets: ["/training.dat"],
+      // Precached explicitly: Workbox's default globPatterns cover the built
+      // JS/CSS/HTML but not these, and both are needed for offline play — the
+      // strategy table and the truffle fanfare.
+      includeAssets: ["/training.dat", "/truffle.mp3"],
       pwaAssets: {
         config: true,
       },
