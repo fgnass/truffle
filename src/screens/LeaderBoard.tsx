@@ -1,6 +1,7 @@
 import { useSignal } from "@preact/signals";
 import { Trophy } from "lucide-preact";
-import { i18n, players, replayWithParty } from "../state";
+import { i18n, online, players, replayWithParty } from "../state";
+import { isRoomHost, rematch } from "../net";
 import { highScores } from "../stats";
 import { Button } from "../components/Button";
 import { HighScoreList } from "../components/HighScoreList";
@@ -96,11 +97,24 @@ export function LeaderBoard() {
         </div>
       </div>
 
-      {/* Single, unambiguous action: back to the roster with this party pre-picked. */}
+      {/* Single, unambiguous action: back to the roster with this party pre-picked.
+          Online it becomes a rematch instead — the room and every peer connection
+          stay up, so the same party plays on without scanning anything again.
+          Only the host can trigger it; the others simply wait, exactly as they
+          did in the lobby. Either side can still leave via Settings. */}
       <div class="flex flex-col items-center px-4 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <Button class="w-full max-w-sm" onClick={replayWithParty}>
-          {t.playAgain}
-        </Button>
+        {online.value && !isRoomHost.value ? (
+          <p class="flex h-11 items-center text-sm font-semibold text-white/80">
+            {t.waitingForHost}
+          </p>
+        ) : (
+          <Button
+            class="w-full max-w-sm"
+            onClick={online.value ? rematch : replayWithParty}
+          >
+            {t.playAgain}
+          </Button>
+        )}
       </div>
 
       {showScores.value && (

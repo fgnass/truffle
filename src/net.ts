@@ -36,20 +36,32 @@ export type Seat = { index: number; name: string; claimed: boolean };
 export const seats = signal<Seat[]>([]);
 // The seat index this device has claimed (host or guest), null until chosen.
 export const myClaim = signal<number | null>(null);
+// True on the device that opened the room. Survives the whole online session
+// (the room stays open across rematches), so the leaderboard can offer "play
+// again" to the host and a "waiting for the host" note to everyone else.
+export const isRoomHost = signal(false);
 
 let room: Room | null = null;
-let sendSync: ((data: PlayerSync) => void) | null = null;
-let sendStart: ((data: PlayerSync[]) => void) | null = null;
+type StartMsg = { epoch: number; roster: PlayerSync[] };
+type SyncMsg = { epoch: number; player: PlayerSync };
+
+let sendSync: ((data: SyncMsg) => void) | null = null;
+let sendStart: ((data: StartMsg) => void) | null = null;
 let sendHello: ((data: { name: string }) => void) | null = null;
 let sendSeats: ((data: Seat[]) => void) | null = null;
 let sendClaim: ((data: { index: number }) => void) | null = null;
-let isHost = false;
 let myName = "";
 // "Split to devices" state. `distributing` flags both host and claiming guests;
 // `claims` maps each seat index to the peer that owns it (host side).
 let distributing = false;
 let claims: Record<number, string> = {};
 let seatNames: string[] = [];
+// Which game generation this device is playing. Bumped by every `start` the host
+// sends (the initial kickoff and each rematch) and carried on every sync, so a
+// snapshot still in flight from the game that just ended can't leak into the new
+// one — without it a stale full score sheet would land in a fresh seat and the
+// round barrier would deadlock on a player who looks finished already.
+let epoch = 0;
 
 function makeRoomId() {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 8);
@@ -86,8 +98,8 @@ function publishSeats() {
 function openRoom(rid: string) {
   room = joinRoom({ appId: APP_ID }, rid);
 
-  const sync = room.makeAction<PlayerSync>("sync");
-  const start = room.makeAction<PlayerSync[]>("start");
+  const sync = room.makeAction<SyncMsg>("sync");
+  const start = room.makeAction<StartMsg>("start");
   const hello = room.makeAction<{ name: string }>("hello");
   const seatList = room.makeAction<Seat[]>("seats");
   const claim = room.makeAction<{ index: number }>("claim");
@@ -99,30 +111,34 @@ function openRoom(rid: string) {
   sendSeats = (d) => void seatList.send(d).catch(() => {});
   sendClaim = (d) => void claim.send(d).catch(() => {});
 
-  sync.onMessage = (data) => applyRemoteSync(data);
+  // Drop anything from a game that has already been superseded — see `epoch`.
+  sync.onMessage = (data) => {
+    if (data.epoch === epoch) applyRemoteSync(data.player);
+  };
 
-  start.onMessage = (roster) => {
-    // Guests adopt the host's roster and jump into the game.
-    if (!isHost) {
-      lobbyMode.value = null;
-      startOnlineGame(roster, selfId);
-    }
+  start.onMessage = (msg) => {
+    // Guests adopt the host's roster and jump into the game — the initial
+    // kickoff and every later rematch arrive the same way.
+    if (isRoomHost.value) return;
+    epoch = msg.epoch;
+    lobbyMode.value = null;
+    startOnlineGame(msg.roster, selfId);
   };
 
   hello.onMessage = (data, ctx) => {
-    if (isHost) {
+    if (isRoomHost.value) {
       lobbyNames.value = { ...lobbyNames.value, [ctx.peerId]: data.name };
     }
   };
 
   // Guest (claim flow) receives the live seat list to choose from.
   seatList.onMessage = (list) => {
-    if (!isHost) seats.value = list;
+    if (!isRoomHost.value) seats.value = list;
   };
 
   // Host (distribute flow) grants a seat to the first peer that claims it.
   claim.onMessage = (data, ctx) => {
-    if (isHost && distributing && !(data.index in claims)) {
+    if (isRoomHost.value && distributing && !(data.index in claims)) {
       claims[data.index] = ctx.peerId;
       publishSeats();
     }
@@ -130,24 +146,24 @@ function openRoom(rid: string) {
 
   room.onPeerJoin = () => {
     // Fresh-lobby guest greets the host with its name on connect.
-    if (!isHost && !distributing) sendHello?.({ name: myName });
+    if (!isRoomHost.value && !distributing) sendHello?.({ name: myName });
     // Distribute host hands the newcomer the current seat list to pick from.
-    if (isHost && distributing) publishSeats();
+    if (isRoomHost.value && distributing) publishSeats();
     // Mid-game, a (re)connecting peer needs our current board right away; their
     // own snapshot will arrive in turn and mark them connected again.
-    if (online.value) sendSync?.(localSnapshot());
+    if (online.value) sendSync?.({ epoch, player: localSnapshot() });
   };
 
   room.onPeerLeave = (peerId) => {
     if (online.value) {
       markDisconnected(peerId);
-    } else if (isHost && distributing) {
+    } else if (isRoomHost.value && distributing) {
       // Free any seat the departing peer had claimed so it can be retaken.
       for (const [i, owner] of Object.entries(claims)) {
         if (owner === peerId) delete claims[Number(i)];
       }
       publishSeats();
-    } else if (isHost) {
+    } else if (isRoomHost.value) {
       const next = { ...lobbyNames.value };
       delete next[peerId];
       lobbyNames.value = next;
@@ -159,8 +175,9 @@ function closeRoom() {
   room?.leave().catch(() => {});
   room = null;
   sendSync = sendStart = sendHello = sendSeats = sendClaim = null;
-  isHost = false;
+  isRoomHost.value = false;
   distributing = false;
+  epoch = 0;
   claims = {};
   lobbyNames.value = {};
 }
@@ -180,21 +197,21 @@ effect(() => {
 effect(() => {
   if (!online.value) return;
   const snap = localSnapshot();
-  sendSync?.(snap);
+  sendSync?.({ epoch, player: snap });
 });
 
 // --- Lobby entry points ----------------------------------------------------
 
 export function hostGame(name: string) {
   myName = name;
-  isHost = true;
+  isRoomHost.value = true;
   lobbyMode.value = "host";
   lobbyNames.value = { [selfId]: name };
   roomId.value = makeRoomId();
 }
 
 export function enterGuestLobby(rid: string) {
-  isHost = false;
+  isRoomHost.value = false;
   pendingRoom.value = rid;
   lobbyMode.value = "guest";
 }
@@ -203,7 +220,7 @@ export function joinGame(name: string) {
   const rid = pendingRoom.value;
   if (!rid) return;
   myName = name;
-  isHost = false;
+  isRoomHost.value = false;
   roomId.value = rid; // opens the room; onPeerJoin sends hello
 }
 
@@ -212,8 +229,31 @@ export function beginGame() {
   const roster = Object.entries(lobbyNames.value).map(([id, name]) =>
     freshSync(id, name),
   );
-  sendStart?.(roster);
+  epoch++;
+  sendStart?.({ epoch, roster });
   lobbyMode.value = null;
+  startOnlineGame(roster, selfId);
+}
+
+// Host: start another round with exactly the party that just finished, without
+// tearing anything down. The room, the peer connections and every seat's peer id
+// stay as they are — only the score sheets are wiped. That's the whole point:
+// after a finished online game nobody has to scan a QR code again.
+//
+// It rides on the same `start` action as the initial kickoff, so guests need no
+// new handler: they simply adopt the roster and jump into a fresh game. Because
+// the ids are the peers' existing ones, each device lands back in its own seat.
+export function rematch() {
+  // A peer that dropped out during the game keeps its seat on the leaderboard,
+  // but taking it into the next game would stall the round barrier on a device
+  // that isn't there. Drop those seats; the player can rejoin via the same link,
+  // which still works — the room id hasn't changed.
+  const roster = players.value
+    .filter((p) => p.connected.value)
+    .map((p) => freshSync(p.id, p.name.value ?? ""));
+  if (roster.length < 2) return;
+  epoch++;
+  sendStart?.({ epoch, roster });
   startOnlineGame(roster, selfId);
 }
 
@@ -223,7 +263,7 @@ export function beginGame() {
 // the UI; guests scan the QR and claim the rest. The local game keeps its state
 // untouched until everyone resumes online.
 export function distributeGame() {
-  isHost = true;
+  isRoomHost.value = true;
   distributing = true;
   claims = {};
   seatNames = players.value.map((p) => p.name.value ?? "");
@@ -247,7 +287,7 @@ export function claimSeatLocal(index: number) {
 
 // Guest (claim flow) opens the room immediately to receive the seat list.
 export function enterClaimLobby(rid: string) {
-  isHost = false;
+  isRoomHost.value = false;
   distributing = true;
   lobbyMode.value = "claim";
   roomId.value = rid;
@@ -274,7 +314,8 @@ export function resumeDistributed() {
     flawless: p.flawless.value,
     adviceCount: p.adviceCount.value,
   }));
-  sendStart?.(roster);
+  epoch++;
+  sendStart?.({ epoch, roster });
   distributing = false;
   lobbyMode.value = null;
   startOnlineGame(roster, selfId);
