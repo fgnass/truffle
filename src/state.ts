@@ -581,6 +581,12 @@ export const globalRound = computed(() => {
 
 // True when the local player has completed the current round but the others
 // haven't caught up — drives the "waiting for …" overlay and blocks rolling.
+//
+// Each device evaluates this against its own replicated view, so it releases
+// only once it has actually *seen* every peer's score for the round land. The
+// score that completes the round is therefore never a green light for the player
+// who entered it: their own board is ahead of the snapshots still in flight, and
+// they wait for those exactly like everyone else.
 export const waiting = computed(
   () =>
     online.value &&
@@ -593,6 +599,22 @@ export const waitingFor = computed(() =>
   players.value
     .filter((p) => p.connected.value && filledCount(p) === globalRound.value)
     .map((p) => p.name.value ?? ""),
+);
+
+// Flips false → true at the moment the barrier lifts: the local player was held
+// back and every peer has now scored, so the next round is theirs to roll. The
+// Game screen watches this edge to buzz the device — see the vibrate effect
+// there — so a player who looked away knows it is their turn again without
+// having to watch the screen.
+export const roundReady = computed(
+  () =>
+    online.value &&
+    !gameFinished.value &&
+    started.value &&
+    !waiting.value &&
+    // Only meaningful once the game is actually under way: at round 0 nobody has
+    // been waiting, so there is no barrier to lift and nothing to announce.
+    globalRound.value > 0,
 );
 
 export function select(index: number) {

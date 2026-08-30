@@ -4,6 +4,7 @@ import { PigIcon } from "../components/PigIcon";
 import { IconButton } from "../components/IconButton";
 import { SettingsButton } from "../components/SettingsButton";
 import { useEffect, useRef } from "preact/hooks";
+import { useSignalEffect } from "@preact/signals";
 import {
   currentPlayerState,
   i18n,
@@ -27,6 +28,7 @@ import {
   online,
   waiting,
   waitingFor,
+  roundReady,
 } from "../state";
 import { Scene } from "../components/VirtualDice";
 import { demoScene, DICE_LAYOUT } from "../demo";
@@ -103,6 +105,21 @@ function useDeviceTilt(targetRef: { current: HTMLElement | null }) {
   }, [targetRef]);
 }
 
+// Buzz once when the round barrier lifts. Online the player often looks away
+// while the others finish their round; the haptic tells them the next roll is
+// theirs without watching the screen. Only the waiting → ready edge fires, so a
+// player who was never held back (and the whole offline game) stays silent.
+// iOS Safari has no Vibration API and ignores this — same as the shake buzz.
+function useRoundReadyBuzz() {
+  const wasWaiting = useRef(false);
+  useSignalEffect(() => {
+    const held = waiting.value;
+    const ready = roundReady.value;
+    if (wasWaiting.current && ready) navigator.vibrate?.([60, 60, 60]);
+    wasWaiting.current = held;
+  });
+}
+
 export function Game() {
   const {
     roll,
@@ -175,6 +192,7 @@ export function Game() {
     if (throwing.value === 0 && canThrow) rollDice();
   });
   useDeviceTilt(diceTiltRef);
+  useRoundReadyBuzz();
 
   return (
     <div class="mx-auto flex w-[min(100%,440px)] flex-1 flex-col gap-3 px-2 py-2 text-base sm:py-4">
