@@ -36,10 +36,23 @@ const CUP = {
 
 const SHAKE = {
   // Once the player has actually shaken, drop the dice this long after they
-  // hold still. There is no bare timeout — an untouched cup waits forever (or
-  // until clicked).
+  // hold still. There is no bare timeout — an untouched cup waits forever.
   idleMs: 1200,
-  tapMaxPx: 10, // a press that barely moves counts as a release click
+  // How much shaking a throw costs. `effort` accumulates the distance the cup
+  // has actually travelled (screen widths for a pointer, integrated device
+  // acceleration for a phone) and must reach `required` before the dice may
+  // drop. Brushing the screen or a single stray motion event no longer counts
+  // as a throw — you have to genuinely rattle the cup, which is the whole point
+  // of the gesture. Roughly a couple of vigorous back-and-forths.
+  required: 2.6,
+  // A pointer shake is measured in fractions of the play area's diagonal, so the
+  // same wrist movement costs the same on a phone and on a desktop.
+  pointerScale: 1,
+  // Device acceleration is integrated over time; this converts m/s² · s into the
+  // same effort unit as the pointer path. Calibrated so a vigorous shake earns
+  // the throw in a little over a second, while a half-hearted jiggle takes
+  // several — enough that faking it is more work than just shaking the phone.
+  deviceScale: 0.18,
 };
 
 const DEVICE = { threshold: 1.5, scale: 0.25 };
@@ -223,9 +236,13 @@ export class Scene extends Component<Props> {
   // watchdog measures from here, not from the last input: a player fighting a
   // stuck die shakes continuously, which used to postpone the safety net forever.
   lastProgressAt = 0;
-  hasShaken = false;
-  pointerStart?: { x: number; y: number };
-  pointerMoved = false;
+  // How much the player has shaken this throw, in the units described on SHAKE.
+  // The dice may only drop once this reaches SHAKE.required.
+  shakeEffort = 0;
+  // Last pointer position, for measuring the path the cup has been dragged along.
+  lastPointer?: { x: number; y: number };
+  // Wall-clock of the previous device-motion sample, to integrate acceleration.
+  lastMotionAt = 0;
 
   renderScene: () => void;
 
@@ -249,8 +266,15 @@ export class Scene extends Component<Props> {
       return;
     }
 
-    this.hasShaken = true;
-    shakingActive.value = true;
+    // Integrate the acceleration over the gap since the last sample: a brief
+    // jolt earns little, sustained rattling earns a lot. Clamp the gap so a
+    // suspended tab resuming doesn't bank a whole throw in one event.
+    const now = performance.now();
+    const dt = this.lastMotionAt
+      ? Math.min((now - this.lastMotionAt) / 1000, 0.1)
+      : 0;
+    this.lastMotionAt = now;
+    this.addEffort(Math.hypot(ax, ay) * dt * SHAKE.deviceScale);
     this.cupTarget.x = clamp(
       this.cupTarget.x + ax * DEVICE.scale,
       -CUP.boundX,
@@ -266,8 +290,9 @@ export class Scene extends Component<Props> {
   handlePointerDown = (e: PointerEvent) => {
     if (this.phase !== "shaking") return;
     diceSound.unlock();
-    this.pointerStart = { x: e.clientX, y: e.clientY };
-    this.pointerMoved = false;
+    // Start measuring the drag from here. A press on its own throws nothing —
+    // only the distance travelled from now on counts towards the throw.
+    this.lastPointer = { x: e.clientX, y: e.clientY };
   };
 
   handlePointerMove = (e: PointerEvent) => {
@@ -281,29 +306,39 @@ export class Scene extends Component<Props> {
     }
     if (this.phase !== "shaking") return;
     this.inputMode = "pointer";
-    // Moving the pointer over the play area is the shake gesture; this is what
-    // arms the idle auto-release (a motionless cup never falls on its own).
-    this.hasShaken = true;
-    shakingActive.value = true;
+    // Moving the pointer over the play area is the shake gesture. Only the
+    // distance actually travelled counts: brushing the screen barely moves the
+    // cup and barely earns anything, while a real rattle racks up effort fast.
+    this.addEffort(this.pointerEffort(e.clientX, e.clientY));
     this.lastInputAt = performance.now();
     this.steerCupToPointer(e.clientX, e.clientY);
-    if (this.pointerStart) {
-      const d = Math.hypot(
-        e.clientX - this.pointerStart.x,
-        e.clientY - this.pointerStart.y,
-      );
-      if (d > SHAKE.tapMaxPx) this.pointerMoved = true;
-    }
   };
 
   handlePointerUp = () => {
-    if (this.phase !== "shaking" || !this.pointerStart) return;
-    const wasClick = !this.pointerMoved;
-    this.pointerStart = undefined;
-    // A click (press without dragging) opens the cup immediately. Moving the
-    // pointer is shaking, so that leaves the idle timer to drop the dice.
-    if (wasClick) this.release();
+    this.lastPointer = undefined;
   };
+
+  // The path the pointer has covered since the last sample, as a fraction of the
+  // play area's diagonal — so the same wrist movement is worth the same on a
+  // phone and on a desktop.
+  private pointerEffort(x: number, y: number) {
+    const prev = this.lastPointer;
+    this.lastPointer = { x, y };
+    if (!prev || !(this.base instanceof Element)) return 0;
+    const r = this.base.getBoundingClientRect();
+    const diag = Math.hypot(r.width, r.height) || 1;
+    return (Math.hypot(x - prev.x, y - prev.y) / diag) * SHAKE.pointerScale;
+  }
+
+  // Bank shake effort. `shakingActive` flips the on-screen hint from "shake to
+  // throw" to "hold still to throw", so it must track the throw actually being
+  // earned — raising it early would promise a drop that the idle timer then
+  // refuses to deliver, which reads as the game ignoring the player.
+  private addEffort(amount: number) {
+    if (amount <= 0) return;
+    this.shakeEffort += amount;
+    if (this.shakeEffort >= SHAKE.required) shakingActive.value = true;
+  }
 
   handleResize = () => this.updateSceneSize();
 
@@ -539,9 +574,14 @@ export class Scene extends Component<Props> {
     const cup = this.cupBody;
     if (!cup) return;
 
-    // Drop only after the player has actually shaken and then held still —
-    // never on a bare timeout. A click (handlePointerUp) still releases at once.
-    if (this.hasShaken && performance.now() - this.lastInputAt > SHAKE.idleMs) {
+    // Drop only after the player has shaken hard enough and then held still.
+    // There is no tap-to-release and no bare timeout: an untouched cup — or one
+    // the player only brushed — waits indefinitely. Earning the throw is the
+    // gesture, so the dice can't be dropped by touching the screen.
+    if (
+      this.shakeEffort >= SHAKE.required &&
+      performance.now() - this.lastInputAt > SHAKE.idleMs
+    ) {
       this.release();
       return;
     }
@@ -918,7 +958,9 @@ export class Scene extends Component<Props> {
     shakingActive.value = false;
     nudging.value = false;
     this.inputMode = "pointer";
-    this.hasShaken = false;
+    this.shakeEffort = 0;
+    this.lastPointer = undefined;
+    this.lastMotionAt = 0;
     this.lastInputAt = performance.now();
     this.lastProgressAt = performance.now();
     this.lastNudgeAt = performance.now();
