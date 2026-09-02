@@ -1,7 +1,7 @@
 import { useComputed, useSignal } from "@preact/signals";
 import { useRef } from "preact/hooks";
 import { computerPlayer, i18n, rosterDraft, startGame } from "../state";
-import { hostGame } from "../net";
+import { distributeGame, hostGame } from "../net";
 import { knownPlayers } from "../stats";
 import { Button } from "../components/Button";
 import { IconButton } from "../components/IconButton";
@@ -48,6 +48,19 @@ export function PlayerNames() {
   // typed but never added (forgot the + button) isn't silently dropped.
   const roster = isNewName ? [...selected.value, trimmed] : selected.value;
 
+  // Piggy is a solo opponent: one human against the perfect player, on one
+  // device. So the tile only shows while the roster can still be that game —
+  // at two humans it drops out rather than sitting there unusable.
+  const piggyAllowed = roster.length <= 1;
+
+  // The multi-device button covers two different situations, and the label says
+  // which one it is rather than making the player guess:
+  //   0-1 players picked — nothing to hand out, so open a lobby and let each
+  //     device announce its own player ("invite others").
+  //   2+ players picked  — the roster is already assembled here, so hand those
+  //     seats to the devices instead of retyping every name ("split to devices").
+  const distributing = roster.length > 1;
+
   const toggle = (name: string) => {
     selected.value = selected.value.includes(name)
       ? selected.value.filter((n) => n !== name)
@@ -60,11 +73,22 @@ export function PlayerNames() {
     query.value = "";
   };
 
-  // Host an online game under the host's own name: the typed name wins,
-  // otherwise a single picked player, otherwise nudge the user to type one.
-  const startOnline = () => {
-    const host =
-      trimmed || (selected.value.length === 1 ? selected.value[0] : "");
+  // Go multi-device. Piggy can't come along (he has no device to play on and
+  // only makes sense one-on-one), so the button silently drops him rather than
+  // sitting there disabled — the label already says what the tap will do.
+  const goOnline = () => {
+    computerPlayer.value = false;
+    // Park the roster so backing out of the lobby returns to the picker with the
+    // party still ticked — this screen's selection is local state and doesn't
+    // survive the unmount.
+    rosterDraft.value = roster;
+    if (distributing) {
+      distributeGame(roster);
+      return;
+    }
+    // Hosting an open lobby needs the host's own name: the typed one wins,
+    // otherwise the single picked player, otherwise nudge them to type one.
+    const host = roster[0] ?? "";
     if (host) hostGame(host);
     else inputRef.current?.focus();
   };
@@ -121,28 +145,31 @@ export function PlayerNames() {
 
             {/* roster grid */}
             <div class="-m-2 grid max-h-64 grid-cols-3 gap-3 overflow-y-auto p-2">
-              {/* Piggy — the computer opponent, always available as a roster member */}
-              <Tile
-                state={computerPlayer.value ? "on" : "off"}
-                onClick={() => (computerPlayer.value = !computerPlayer.value)}
-                style={{
-                  backgroundColor: `color-mix(in srgb, ${PIGGY_COLOR} 18%, white)`,
-                }}
-                class={TILE_LAYOUT}
-              >
-                <PlayerAvatar
-                  name="Piggy"
-                  piggy
-                  size="lg"
-                  class={computerPlayer.value ? "avatar-pop" : ""}
-                />
-                <PlayerName name="Piggy" piggy size="md" />
-                {computerPlayer.value && (
-                  <TileBadge tone="select">
-                    <Check class="size-3.5" strokeWidth={3} />
-                  </TileBadge>
-                )}
-              </Tile>
+              {/* Piggy — the computer opponent, offered while the roster is
+                  still a one-on-one game (see piggyAllowed) */}
+              {piggyAllowed && (
+                <Tile
+                  state={computerPlayer.value ? "on" : "off"}
+                  onClick={() => (computerPlayer.value = !computerPlayer.value)}
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${PIGGY_COLOR} 18%, white)`,
+                  }}
+                  class={TILE_LAYOUT}
+                >
+                  <PlayerAvatar
+                    name="Piggy"
+                    piggy
+                    size="lg"
+                    class={computerPlayer.value ? "avatar-pop" : ""}
+                  />
+                  <PlayerName name="Piggy" piggy size="md" />
+                  {computerPlayer.value && (
+                    <TileBadge tone="select">
+                      <Check class="size-3.5" strokeWidth={3} />
+                    </TileBadge>
+                  )}
+                </Tile>
+              )}
 
               {tiles.value.map((name) => {
                 const on = selected.value.includes(name);
@@ -190,11 +217,11 @@ export function PlayerNames() {
             <div class="flex items-center justify-between gap-2">
               <Button
                 intent="ghost"
-                onClick={startOnline}
+                onClick={goOnline}
                 class="gap-1.5 px-3 py-2 text-sm font-semibold text-primary-700"
               >
                 <Smartphone class="size-4" />
-                {t.playOnline}
+                {distributing ? t.splitToDevices : t.inviteOthers}
               </Button>
               <Button
                 class="text-lg"

@@ -129,7 +129,10 @@ function stageRoster() {
   seedKnownPlayers();
   batch(() => {
     introOpen.value = false;
-    computerPlayer.value = true;
+    // Piggy's tile only shows while the roster is still a one-on-one game, so a
+    // three-name draft would render the picker without him. Leave him off and
+    // let the shot show the multi-player selection it is meant to show.
+    computerPlayer.value = false;
     rosterDraft.value = ["Mara", "Felix", "Jonas"];
   });
   // No 3D scene here, so signal readiness once the layout has painted.

@@ -155,7 +155,7 @@ const i18n: I18n = {
   tapForStats: "Tippe auf einen Spieler für die Statistik",
   rowStatsHint: "Für Statistik tippen",
   // Online-Modus (mehrere Geräte)
-  playOnline: "Andere Geräte",
+  inviteOthers: "Andere einladen",
   scanToJoin: "Zum Mitspielen scannen",
   copyLink: "Link kopieren",
   linkCopied: "Kopiert!",

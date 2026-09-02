@@ -18,6 +18,7 @@ import {
   myClaim,
   resumeDistributed,
   seats,
+  stagingGame,
 } from "../net";
 import { Button } from "../components/Button";
 import { IconButton } from "../components/IconButton";
@@ -207,7 +208,7 @@ function DistributeLobby() {
         disabled={!ready.value}
         onClick={resumeDistributed}
       >
-        {t.resumeGame}
+        {stagingGame.value ? t.letsGo : t.resumeGame}
       </Button>
     </Card>
   );

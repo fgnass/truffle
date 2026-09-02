@@ -50,6 +50,10 @@ export const isRoomHost = signal(false);
 // Set when a device opens a claim link for a split that has already finished —
 // the seat-picker has nothing to offer, so the lobby says so instead of spinning.
 export const claimClosed = signal(false);
+// True while the "distribute" lobby is staging a game that hasn't started yet
+// (split from the player picker) rather than one already in progress. Only the
+// wording differs — "let's go" vs. "resume on the devices".
+export const stagingGame = signal(false);
 
 let room: Room | null = null;
 type StartMsg = { epoch: number; roster: PlayerSync[] };
@@ -66,6 +70,9 @@ let myName = "";
 let distributing = false;
 let claims: Record<number, string> = {};
 let seatNames: string[] = [];
+// Set when the split was started from the player picker rather than a running
+// game: the roster to open a *fresh* game with, instead of handing over boards.
+let pendingRoster: string[] | null = null;
 // Which game generation this device is playing. Bumped by every `start` the host
 // sends (the initial kickoff and each rematch) and carried on every sync, so a
 // snapshot still in flight from the game that just ended can't leak into the new
@@ -250,6 +257,8 @@ function closeRoom() {
   sendSync = sendStart = sendHello = sendSeats = sendClaim = null;
   isRoomHost.value = false;
   distributing = false;
+  pendingRoster = null;
+  stagingGame.value = false;
   epoch = 0;
   claims = {};
   lobbyNames.value = {};
@@ -332,14 +341,21 @@ export function rematch() {
 
 // --- "Split to devices": migrate a running local game to P2P ---------------
 
-// Host: open a room offering the current seats. The host claims one seat from
-// the UI; guests scan the QR and claim the rest. The local game keeps its state
-// untouched until everyone resumes online.
-export function distributeGame() {
+// Host: open a room offering a set of seats. The host claims one seat from the
+// UI; guests scan the QR and claim the rest.
+//
+// Two callers, one flow. Mid-game (from the settings sheet) `names` is omitted
+// and the seats come from the running game, whose state stays untouched until
+// everyone resumes online. From the player picker `names` is the roster the host
+// just assembled and there is no game yet — `pendingRoster` remembers it so
+// resumeDistributed() can start a fresh game instead of handing over boards.
+export function distributeGame(names?: string[]) {
   isRoomHost.value = true;
   distributing = true;
   claims = {};
-  seatNames = players.value.map((p) => p.name.value ?? "");
+  pendingRoster = names ?? null;
+  stagingGame.value = !!names;
+  seatNames = names ?? players.value.map((p) => p.name.value ?? "");
   seats.value = seatNames.map((name, index) => ({
     index,
     name,
@@ -377,21 +393,27 @@ export function allSeatsClaimed() {
   return seats.value.length > 0 && seats.value.every((s) => s.claimed);
 }
 
-// Host: hand the in-progress boards to their claimed devices and resume online.
+// Host: hand the seats to their claimed devices and start playing online.
+// A split from the player picker opens a fresh game (empty sheets); a split from
+// a running game carries each player's board over so nobody loses their score.
 export function resumeDistributed() {
-  const roster: PlayerSync[] = players.value.map((p, i) => ({
-    id: claims[i],
-    name: p.name.value ?? "",
-    scores: p.scores.value,
-    combo: p.combo.value,
-    longestCombo: p.longestCombo.value,
-    flawless: p.flawless.value,
-    adviceCount: p.adviceCount.value,
-    truffles: p.truffles.value,
-  }));
+  const roster: PlayerSync[] = pendingRoster
+    ? pendingRoster.map((name, i) => freshSync(claims[i], name))
+    : players.value.map((p, i) => ({
+        id: claims[i],
+        name: p.name.value ?? "",
+        scores: p.scores.value,
+        combo: p.combo.value,
+        longestCombo: p.longestCombo.value,
+        flawless: p.flawless.value,
+        adviceCount: p.adviceCount.value,
+        truffles: p.truffles.value,
+      }));
   epoch++;
   sendStart?.({ epoch, roster });
   distributing = false;
+  pendingRoster = null;
+  stagingGame.value = false;
   lobbyMode.value = null;
   startOnlineGame(roster, selfId);
 }
@@ -403,6 +425,8 @@ export function cancelLobby() {
   claimClosed.value = false;
   pendingRoom.value = null;
   distributing = false;
+  pendingRoster = null;
+  stagingGame.value = false;
   claims = {};
   seats.value = [];
   myClaim.value = null;

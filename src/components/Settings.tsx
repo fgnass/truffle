@@ -88,11 +88,14 @@ export function Settings() {
           </Button>
         )}
 
-        {/* Split a running local pass-and-play game onto each player's device. */}
+        {/* Split a running local pass-and-play game onto each player's device.
+            A game with Piggy in it can't be split — he has no device to sit on —
+            and he only ever plays one-on-one anyway. */}
         {started.value &&
           !online.value &&
           !gameFinished.value &&
-          players.value.length > 1 && (
+          players.value.length > 1 &&
+          players.value.every((p) => p.human) && (
             <Button
               intent="secondary"
               class="w-full"

@@ -153,7 +153,7 @@ const i18n = {
   tapForStats: "Tap a player for their stats",
   rowStatsHint: "Tap for stats",
   // Online (multi-device) mode
-  playOnline: "Other devices",
+  inviteOthers: "Invite others",
   scanToJoin: "Scan to join",
   copyLink: "Copy link",
   linkCopied: "Copied!",

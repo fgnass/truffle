@@ -439,7 +439,14 @@ export function startGame(names: string[]) {
     player.name.value = name;
     return player;
   });
-  if (computerPlayer.value) roster.push(new ComputerPlayer());
+  // Piggy is a one-on-one opponent (see the picker): he joins a solo game, never
+  // a table of humans. Enforce it here too, so no caller can build a mixed
+  // roster the UI never offers.
+  if (computerPlayer.value && roster.length === 1) {
+    roster.push(new ComputerPlayer());
+  } else {
+    computerPlayer.value = false;
+  }
   batch(() => {
     showStats.value = false;
     settingsOpen.value = false;
@@ -547,14 +554,18 @@ export function newGame() {
 
 // End-of-game "play again": back to the roster picker with this game's party
 // (the humans) pre-selected, so the common case is one tap on "Let's go". Piggy
-// rides along via the persistent `computerPlayer` flag. The player can still add
+// rides along via the persistent `computerPlayer` flag — but only from a game he
+// was actually in, otherwise a leftover flag would silently add him to a table
+// of humans, where the picker doesn't even offer him. The player can still add
 // or drop people before starting.
 export function replayWithParty() {
   const names = players.value
     .filter((p) => p.human)
     .map((p) => p.name.value ?? "")
     .filter(Boolean);
+  const withPiggy = players.value.some((p) => !p.human);
   batch(() => {
+    computerPlayer.value = withPiggy && names.length === 1;
     showStats.value = false;
     settingsOpen.value = false;
     started.value = false;
