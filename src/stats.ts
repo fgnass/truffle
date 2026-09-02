@@ -19,6 +19,10 @@ export type PlayerResult = {
   longestCombo: number; // best streak of Piggy-optimal moves
   flawless: boolean; // played the whole game without a misstep or hint
   rank: number; // 1 = winner of this game
+  // Five-of-a-kind hands rolled this game, counted per round as they were
+  // scored. Optional because games recorded before this existed don't have it —
+  // see truffleCount(), which falls back to reading the truffle category.
+  truffles?: number;
 };
 
 export type GameRecord = {
@@ -66,6 +70,15 @@ export const knownPlayers = computed(() => {
 
 // Category index of the Truffle (5-of-a-kind; matches PlayerState.scores).
 export const TRUFFLE_INDEX = 11;
+
+// How many truffles a recorded result holds. Newer games carry an explicit
+// count, which is the only way to see a second five-of-a-kind — that one has to
+// be written into some other category, and the score sheet alone can't tell it
+// apart from an ordinary roll. Older records predate the counter, so fall back
+// to the truffle box: at least one if it was scored.
+export function truffleCount(r: PlayerResult) {
+  return r.truffles ?? ((r.scores[TRUFFLE_INDEX] ?? 0) > 0 ? 1 : 0);
+}
 
 // All of one player's results across every game, oldest-first.
 function resultsFor(name: string): PlayerResult[] {
@@ -125,7 +138,7 @@ function entriesFrom(records: GameRecord[]): ScoreEntry[] {
       human: p.human,
       score: p.total,
       date: g.date,
-      truffle: (p.scores[TRUFFLE_INDEX] ?? 0) > 0,
+      truffle: truffleCount(p) > 0,
       flawless: p.flawless,
       adviceCount: p.adviceCount,
     })),
@@ -174,7 +187,7 @@ export type PlayerSummary = {
   worst: number; // lowest total
   wins: number; // multiplayer wins
   winRate: number | null; // over multiplayer games; null if they've played none
-  truffles: number; // games with a truffle
+  truffles: number; // total five-of-a-kind hands rolled, across all games
   bestCombo: number; // best streak of Piggy-optimal moves ever
   flawlessGames: number; // games played without a misstep or hint
 };
@@ -195,9 +208,7 @@ export function playerSummary(name: string): PlayerSummary {
     if (me.rank === 1) wins++;
   }
 
-  const truffles = mine.filter(
-    (r) => (r.scores[TRUFFLE_INDEX] ?? 0) > 0,
-  ).length;
+  const truffles = mine.reduce((n, r) => n + truffleCount(r), 0);
 
   return {
     name,

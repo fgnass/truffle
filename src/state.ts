@@ -124,6 +124,10 @@ export type PlayerSync = {
   longestCombo: number;
   flawless: boolean;
   adviceCount: number;
+  // Replicated so every device records the same truffle tally for this player —
+  // it cannot be re-derived from the score sheet (see truffleCount in stats.ts).
+  // Optional: a peer on an older build simply doesn't send it.
+  truffles?: number;
 };
 
 const preferredLang = Object.keys(translations).find((l) =>
@@ -220,6 +224,13 @@ export class PlayerState {
   // misstep or player switch, so we track its high-water mark separately.
   adviceCount = signal(0);
   longestCombo = signal(0);
+  // Five-of-a-kind hands rolled this game. Counted per round when the score is
+  // entered, not per throw: only one truffle can be banked per round, however
+  // many times the dice come up all-alike while re-rolling. The category it goes
+  // into is irrelevant — a second truffle written off as a four-of-a-kind or a
+  // chance still counts, which is exactly what the scoreboard can no longer tell
+  // us after the fact (it only stores the final per-category points).
+  truffles = signal(0);
 
   upperScore = computed(() => this.scores.value.slice(0, 6).reduce(sum));
 
@@ -336,6 +347,7 @@ export class PlayerState {
     this.adviceNeeded.value = false;
     this.adviceCount.value = 0;
     this.longestCombo.value = 0;
+    this.truffles.value = 0;
   }
 }
 
@@ -453,6 +465,7 @@ export function startOnlineGame(roster: PlayerSync[], localId: string) {
     p.longestCombo.value = r.longestCombo;
     p.flawless.value = r.flawless;
     p.adviceCount.value = r.adviceCount;
+    p.truffles.value = r.truffles ?? 0;
     return p;
   });
   const idx = Math.max(
@@ -482,6 +495,7 @@ export function localSnapshot(): PlayerSync {
     longestCombo: p.longestCombo.value,
     flawless: p.flawless.value,
     adviceCount: p.adviceCount.value,
+    truffles: p.truffles.value,
   };
 }
 
@@ -497,6 +511,7 @@ export function applyRemoteSync(s: PlayerSync) {
     p.longestCombo.value = s.longestCombo;
     p.flawless.value = s.flawless;
     p.adviceCount.value = s.adviceCount;
+    p.truffles.value = s.truffles ?? 0;
   });
 }
 
@@ -709,6 +724,12 @@ export function rollDice(force = false) {
   });
 }
 
+// Five dice showing the same face. Kept dice count: the truffle is the hand on
+// the table, however it was assembled across the three throws.
+export function isTruffle(dice: number[]) {
+  return dice.length === 5 && dice.every((d) => d === dice[0]);
+}
+
 // Bumped the moment a settled roll shows five of a kind — the truffle. A
 // monotonic counter rather than a boolean so two truffles in a row are two
 // distinct events (the same reason `celebrate` is a counter). The Game screen
@@ -722,11 +743,7 @@ export function setResult(result: number[]) {
     const { roll } = currentPlayerState.value;
     const settled = roll.value.concat(result).slice(0, 5);
     roll.value = settled;
-    // Five dice, all the same face. Kept dice count: the truffle is the hand on
-    // the table, however it was assembled.
-    if (settled.length === 5 && settled.every((d) => d === settled[0])) {
-      truffleRolled.value++;
-    }
+    if (isTruffle(settled)) truffleRolled.value++;
   });
 }
 
@@ -735,6 +752,7 @@ export function assignScore(cat: number) {
     scores,
     roll,
     selection,
+    truffles,
     throwNum,
     prevState,
     perfect,
@@ -795,6 +813,11 @@ export function assignScore(cat: number) {
       combo.value = roundWasPerfect ? combo.value + 1 : 0;
       roundPerfect.value = true; // start the next round fresh
       piggySeen.value = false; // …and let the next round earn a badge again
+      // Bank the truffle for the stats before the roll is cleared. It counts on
+      // the hand, not on the category: a second five-of-a-kind has to go
+      // somewhere else (the truffle box is already used), and that one still
+      // deserves to show up in "truffles rolled".
+      if (isTruffle(roll.value)) truffles.value++;
       const score = getCategoryScore(cat, roll.value);
       prevState.value = snapshot();
       scores.value = [
@@ -840,6 +863,7 @@ export function undo() {
     piggyPick,
     piggyKeep,
     piggyRoll,
+    truffles,
   } = currentPlayerState.value;
   const prev = prevState.value;
   if (prev) {
@@ -855,6 +879,7 @@ export function undo() {
       roll.value = prev.roll;
       throwNum.value = prev.throwNum;
       selection.value = prev.selection;
+      truffles.value = prev.truffles;
       prevState.value = redoState;
     });
   }
@@ -956,6 +981,7 @@ effect(() => {
       longestCombo: p.longestCombo.value,
       flawless: p.flawless.value,
       rank: ranks[i],
+      truffles: p.truffles.value,
     })),
   };
   recordGame(rec);
@@ -1023,12 +1049,16 @@ if (import.meta.env.DEV) {
 }
 
 function snapshot() {
-  const { scores, roll, selection, throwNum } = currentPlayerState.value;
+  const { scores, roll, selection, throwNum, truffles } =
+    currentPlayerState.value;
   return {
     scores: scores.value,
     roll: roll.value,
     throwNum: throwNum.value,
     selection: selection.value,
+    // Carried so undo rolls the tally back too: the roll is restored with it, so
+    // re-entering the same hand would otherwise count that truffle twice.
+    truffles: truffles.value,
     redo: false,
   };
 }
