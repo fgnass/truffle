@@ -41,18 +41,22 @@ const SHAKE = {
   // How much shaking a throw costs. `effort` accumulates the distance the cup
   // has actually travelled (screen widths for a pointer, integrated device
   // acceleration for a phone) and must reach `required` before the dice may
-  // drop. Brushing the screen or a single stray motion event no longer counts
-  // as a throw — you have to genuinely rattle the cup, which is the whole point
-  // of the gesture. Roughly a couple of vigorous back-and-forths.
-  required: 2.6,
+  // drop. The bar is deliberately low: its only job is to rule out the old
+  // tap-to-throw, not to make the player work. One swipe across the play area,
+  // or a fraction of a second of real shaking, clears it — while a stationary
+  // touch earns nothing at all and a stray pixel of drift is worth ~1/20th of a
+  // throw. An earlier, much stricter setting demanded seconds of shaking and was
+  // simply exhausting to play.
+  required: 0.8,
   // A pointer shake is measured in fractions of the play area's diagonal, so the
   // same wrist movement costs the same on a phone and on a desktop.
   pointerScale: 1,
   // Device acceleration is integrated over time; this converts m/s² · s into the
-  // same effort unit as the pointer path. Calibrated so a vigorous shake earns
-  // the throw in a little over a second, while a half-hearted jiggle takes
-  // several — enough that faking it is more work than just shaking the phone.
-  deviceScale: 0.18,
+  // same effort unit as the pointer path. `acceleration` excludes gravity, so
+  // real-world shakes read far lower than one might guess (roughly 5-10 m/s²,
+  // not 12+) — and DEVICE.threshold already discards everything under 1.5.
+  // Scaled so a brisk shake clears the bar in about a quarter of a second.
+  deviceScale: 0.35,
 };
 
 const DEVICE = { threshold: 1.5, scale: 0.25 };
