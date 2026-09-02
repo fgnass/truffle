@@ -168,6 +168,7 @@ const i18n = {
   pickYourSeat: "Which player are you?",
   scanToClaim: "Let the others scan",
   whoAreYou: "Which player are you?",
+  claimClosed: "This game is already under way. The link is no longer valid.",
   connecting: "Connecting…",
   seatYou: "you",
   seatReady: "ready",

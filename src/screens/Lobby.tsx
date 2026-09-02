@@ -1,5 +1,5 @@
 import { ComponentChildren } from "preact";
-import { useComputed, useSignal } from "@preact/signals";
+import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useRef } from "preact/hooks";
 import { Check, Copy, Loader, X } from "lucide-preact";
 import { i18n, roomId } from "../state";
@@ -11,7 +11,9 @@ import {
   claimSeatLocal,
   joinGame,
   joinLink,
+  claimClosed,
   lobbyMode,
+  rememberedName,
   lobbyNames,
   myClaim,
   resumeDistributed,
@@ -98,7 +100,10 @@ function HostLobby() {
 
 function GuestLobby() {
   const t = i18n.value;
-  const name = useSignal("");
+  // Prefill with the name this device last played under: joining game after
+  // game with the same friends is the common case, so the usual action is to
+  // confirm rather than retype. Still fully editable.
+  const name = useSignal(rememberedName());
   const inputRef = useRef<HTMLInputElement>(null);
   // Once roomId is set the guest has joined and is waiting for the host's start.
   const joined = roomId.value !== null;
@@ -212,6 +217,29 @@ function DistributeLobby() {
 function ClaimLobby() {
   const t = i18n.value;
   const list = useComputed(() => seats.value);
+  const open = useComputed(() => list.value.filter((s) => !s.claimed));
+
+  // With exactly one seat left there is nothing to decide — the host already
+  // said who everyone is, so asking "who are you?" for a single option is just
+  // an extra tap. Take it automatically.
+  useSignalEffect(() => {
+    if (myClaim.value === null && open.value.length === 1) {
+      claimSeat(open.value[0].index);
+    }
+  });
+
+  if (claimClosed.value) {
+    return (
+      <Card>
+        <p class="text-center text-lg font-semibold text-primary-900">
+          {t.claimClosed}
+        </p>
+        <Button intent="soft" onClick={cancelLobby}>
+          {t.back}
+        </Button>
+      </Card>
+    );
+  }
 
   if (myClaim.value !== null) {
     return (

@@ -32,7 +32,14 @@ export const pendingRoom = signal<string | null>(null);
 export const lobbyNames = signal<Record<string, string>>({});
 // "Split to devices": the existing seats and whether each has been claimed by a
 // device. Maintained by the host and pushed to every claiming guest.
-export type Seat = { index: number; name: string; claimed: boolean };
+// `by` is the peer id that holds the seat, so a claiming device can tell "mine"
+// from "someone else got there first" — `claimed` alone can't distinguish them.
+export type Seat = {
+  index: number;
+  name: string;
+  claimed: boolean;
+  by?: string;
+};
 export const seats = signal<Seat[]>([]);
 // The seat index this device has claimed (host or guest), null until chosen.
 export const myClaim = signal<number | null>(null);
@@ -40,6 +47,9 @@ export const myClaim = signal<number | null>(null);
 // (the room stays open across rematches), so the leaderboard can offer "play
 // again" to the host and a "waiting for the host" note to everyone else.
 export const isRoomHost = signal(false);
+// Set when a device opens a claim link for a split that has already finished —
+// the seat-picker has nothing to offer, so the lobby says so instead of spinning.
+export const claimClosed = signal(false);
 
 let room: Room | null = null;
 type StartMsg = { epoch: number; roster: PlayerSync[] };
@@ -67,6 +77,36 @@ function makeRoomId() {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 }
 
+// The name this device plays under online, remembered across sessions so a
+// player joining game after game doesn't retype it every time. Written whenever
+// a name is actually used to host or join.
+const NAME_KEY = "truffle.myName";
+
+export function rememberedName() {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? "";
+  } catch {
+    return ""; // private mode / storage blocked — just start empty
+  }
+}
+
+// Collapse inner runs of whitespace and strip the ends, so "  Elmer " and
+// "Elmer" are the same player rather than two look-alike entries in the roster
+// and the high-score table.
+function normalizeName(name: string) {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+function setMyName(name: string) {
+  myName = normalizeName(name);
+  try {
+    if (myName) localStorage.setItem(NAME_KEY, myName);
+  } catch {
+    /* storage blocked — the name just won't be remembered */
+  }
+  return myName;
+}
+
 function freshSync(id: string, name: string): PlayerSync {
   return {
     id,
@@ -76,6 +116,7 @@ function freshSync(id: string, name: string): PlayerSync {
     longestCombo: 0,
     flawless: true,
     adviceCount: 0,
+    truffles: 0,
   };
 }
 
@@ -86,6 +127,7 @@ function publishSeats() {
     index,
     name,
     claimed: index in claims,
+    by: claims[index],
   }));
   seats.value = list;
   sendSeats?.(list);
@@ -122,18 +164,35 @@ function openRoom(rid: string) {
     if (isRoomHost.value) return;
     epoch = msg.epoch;
     lobbyMode.value = null;
+    clearJoinHash();
     startOnlineGame(msg.roster, selfId);
   };
 
   hello.onMessage = (data, ctx) => {
-    if (isRoomHost.value) {
-      lobbyNames.value = { ...lobbyNames.value, [ctx.peerId]: data.name };
-    }
+    if (!isRoomHost.value) return;
+    // A peer's name arrives as raw input; normalize it here so the roster the
+    // host freezes (and every score sheet derived from it) is already clean.
+    const name = normalizeName(data.name ?? "");
+    if (!name) return;
+    lobbyNames.value = { ...lobbyNames.value, [ctx.peerId]: name };
   };
 
-  // Guest (claim flow) receives the live seat list to choose from.
+  // Guest (claim flow) receives the live seat list to choose from. An empty list
+  // means the host has already resumed and there is nothing left to claim.
   seatList.onMessage = (list) => {
-    if (!isRoomHost.value) seats.value = list;
+    if (isRoomHost.value) return;
+    seats.value = list;
+    if (!list.length && lobbyMode.value === "claim") {
+      claimClosed.value = true;
+      return;
+    }
+    // The host's list is the authority on who owns what. A claim is optimistic
+    // locally, so if two devices raced for the same seat the loser must be told:
+    // drop the claim and let them pick again from whatever is still open.
+    const mine = list.find((s) => s.index === myClaim.value);
+    if (myClaim.value !== null && mine?.claimed && mine.by !== selfId) {
+      myClaim.value = null;
+    }
   };
 
   // Host (distribute flow) grants a seat to the first peer that claims it.
@@ -149,6 +208,10 @@ function openRoom(rid: string) {
     if (!isRoomHost.value && !distributing) sendHello?.({ name: myName });
     // Distribute host hands the newcomer the current seat list to pick from.
     if (isRoomHost.value && distributing) publishSeats();
+    // A device that arrives in the seat-picker after the split is over (a stale
+    // claim link, or the back button) would otherwise wait forever for a seat
+    // list that is never coming. Tell it the split is done so it can say so.
+    if (isRoomHost.value && !distributing && online.value) sendSeats?.([]);
     // Mid-game, a (re)connecting peer needs our current board right away; their
     // own snapshot will arrive in turn and mark them connected again.
     if (online.value) sendSync?.({ epoch, player: localSnapshot() });
@@ -169,6 +232,16 @@ function openRoom(rid: string) {
       lobbyNames.value = next;
     }
   };
+}
+
+// Drop the #room=… marker from the address bar. The link has done its job the
+// moment the device is in the room; leaving it there means any later reload
+// (a PWA relaunch, a service-worker update, iOS reclaiming memory) re-runs
+// initFromUrl and throws the player back into the join/claim lobby — out of the
+// game they were in the middle of, and stuck waiting for a seat list the host
+// no longer sends because it has stopped distributing.
+function clearJoinHash() {
+  if (location.hash) history.replaceState(null, "", location.pathname);
 }
 
 function closeRoom() {
@@ -203,10 +276,10 @@ effect(() => {
 // --- Lobby entry points ----------------------------------------------------
 
 export function hostGame(name: string) {
-  myName = name;
+  const n = setMyName(name);
   isRoomHost.value = true;
   lobbyMode.value = "host";
-  lobbyNames.value = { [selfId]: name };
+  lobbyNames.value = { [selfId]: n };
   roomId.value = makeRoomId();
 }
 
@@ -219,7 +292,7 @@ export function enterGuestLobby(rid: string) {
 export function joinGame(name: string) {
   const rid = pendingRoom.value;
   if (!rid) return;
-  myName = name;
+  if (!setMyName(name)) return; // whitespace-only — nothing to join as
   isRoomHost.value = false;
   roomId.value = rid; // opens the room; onPeerJoin sends hello
 }
@@ -288,6 +361,7 @@ export function claimSeatLocal(index: number) {
 // Guest (claim flow) opens the room immediately to receive the seat list.
 export function enterClaimLobby(rid: string) {
   isRoomHost.value = false;
+  claimClosed.value = false;
   distributing = true;
   lobbyMode.value = "claim";
   roomId.value = rid;
@@ -313,6 +387,7 @@ export function resumeDistributed() {
     longestCombo: p.longestCombo.value,
     flawless: p.flawless.value,
     adviceCount: p.adviceCount.value,
+    truffles: p.truffles.value,
   }));
   epoch++;
   sendStart?.({ epoch, roster });
@@ -325,13 +400,14 @@ export function resumeDistributed() {
 // room). For a distribute host the running local game is left intact underneath.
 export function cancelLobby() {
   lobbyMode.value = null;
+  claimClosed.value = false;
   pendingRoom.value = null;
   distributing = false;
   claims = {};
   seats.value = [];
   myClaim.value = null;
   roomId.value = null;
-  if (location.hash) history.replaceState(null, "", location.pathname);
+  clearJoinHash();
 }
 
 // The shareable join link for the current room. `claim` marks a link that drops
