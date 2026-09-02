@@ -1,5 +1,5 @@
 import Die from "../components/Die";
-import { Redo2, Undo2 } from "lucide-preact";
+import { Hand, Redo2, Undo2 } from "lucide-preact";
 import { PigIcon } from "../components/PigIcon";
 import { IconButton } from "../components/IconButton";
 import { SettingsButton } from "../components/SettingsButton";
@@ -292,13 +292,22 @@ export function Game() {
             ))}
           </div>
           <div class="mt-4 min-h-6 text-center text-[0.82em] font-medium text-neutral-500">
-            {shaking.value && (
-              <span class="inline-block animate-pulse text-primary-600">
-                {shakingActive.value
-                  ? variant(t.stopHintMotion, t.stopHintTouch, t.stopHint)
-                  : variant(t.shakeHintMotion, t.shakeHintTouch, t.shakeHint)}
-              </span>
-            )}
+            {/* Two states, deliberately styled apart: "keep shaking" is the
+                quiet purple prompt, "let go" is a solid green pill that stops
+                pulsing and holds still — the look itself says "stop", so the
+                switch is obvious at a glance instead of being a word change in
+                otherwise identical text. */}
+            {shaking.value &&
+              (shakingActive.value ? (
+                <span class="inline-flex animate-popIn items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 font-semibold text-white shadow-subtle shadow-emerald-900/30">
+                  <Hand class="size-4" />
+                  {variant(t.stopHintMotion, t.stopHintTouch, t.stopHint)}
+                </span>
+              ) : (
+                <span class="inline-block animate-pulse text-primary-600">
+                  {variant(t.shakeHintMotion, t.shakeHintTouch, t.shakeHint)}
+                </span>
+              ))}
             {nudging.value && (
               <span class="inline-block animate-pulse text-primary-600">
                 {t.nudgeHint}

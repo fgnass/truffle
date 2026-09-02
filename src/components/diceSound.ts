@@ -17,9 +17,10 @@ import { sound } from "../state";
 // The truffle fanfare, served from public/. Kept as a plain URL (not a bundled
 // import) so it stays a separate file the service worker can precache.
 const TRUFFLE_URL = `${import.meta.env.BASE_URL}truffle.mp3`;
-// The sample is mastered louder than the synthesized impacts; trim it so the
-// fanfare sits over the dice rather than clipping them.
-const TRUFFLE_GAIN = 0.7;
+// The fanfare is the game's one celebration cue, so it is meant to carry over
+// the dice still clattering underneath. Just short of 1 to leave the sample its
+// own headroom.
+const TRUFFLE_GAIN = 0.95;
 
 let ctx: AudioContext | null = null;
 let noiseBuffer: AudioBuffer | null = null;
