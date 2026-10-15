@@ -116,6 +116,7 @@ const i18n = {
   resetStatsBody:
     "All saved games and statistics will be permanently deleted. This can't be undone.",
   resetStatsConfirm: "Delete",
+  privacy: "Privacy",
   noGamesYet: "No games played yet.",
   scopeAll: "All-time",
   scopeRound: "This round",

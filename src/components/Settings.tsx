@@ -127,6 +127,13 @@ export function Settings() {
           <Trash2 class="size-4" />
           {t.resetStats}
         </Button>
+
+        <a
+          href="https://gnass.buzz/privacy/"
+          class="self-center text-sm text-neutral-500 hover:text-neutral-700"
+        >
+          {t.privacy}
+        </a>
       </Dialog>
 
       {confirmReset && (

@@ -119,6 +119,7 @@ const i18n: I18n = {
   resetStatsBody:
     "Alle gespeicherten Spiele und Statistiken werden unwiderruflich gelöscht.",
   resetStatsConfirm: "Löschen",
+  privacy: "Datenschutz",
   noGamesYet: "Noch keine Spiele gespielt.",
   scopeAll: "Alle",
   scopeRound: "Diese Runde",
